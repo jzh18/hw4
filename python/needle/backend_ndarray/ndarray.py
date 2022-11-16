@@ -460,6 +460,11 @@ class NDArray:
 
     ### Elementwise functions
 
+    def divide(self,b):
+        out = NDArray.make(self.shape, device=self.device)
+        self.device.ewise_div(self.compact()._handle,b._handle, out._handle)
+        return out
+
     def log(self):
         out = NDArray.make(self.shape, device=self.device)
         self.device.ewise_log(self.compact()._handle, out._handle)
@@ -615,6 +620,9 @@ def reshape(array, new_shape):
 
 def maximum(a, b):
     return a.maximum(b)
+
+def divide(a,b):
+    return a.divide(b)
 
 
 def log(a):
