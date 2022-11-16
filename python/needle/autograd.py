@@ -373,11 +373,26 @@ def compute_gradient_of_variables(output_tensor, out_grad):
     # We are really taking a derivative of the scalar reduce_sum(output_node)
     # instead of the vector output_node. But this is the common case for loss function.
     node_to_output_grads_list[output_tensor] = [out_grad]
+
     # Traverse graph in reverse topological order given the output_node that we are taking gradient wrt.
     reverse_topo_order = list(reversed(find_topo_sort([output_tensor])))
 
-    ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    # BEGIN YOUR SOLUTION
+    for i in reverse_topo_order:
+
+        vi = sum_node_list(node_to_output_grads_list[i])
+        i.grad = vi
+        if i.op is None:
+            continue
+
+        grads = i.op.gradient_as_tuple(vi, i)
+        for j in range(len(i.inputs)):
+            k = i.inputs[j]
+            vki = grads[j]
+            if k not in node_to_output_grads_list:
+                node_to_output_grads_list[k] = [vki]
+            else:
+                node_to_output_grads_list[k].append(vki)
     ### END YOUR SOLUTION
 
 
@@ -390,14 +405,23 @@ def find_topo_sort(node_list: List[Value]) -> List[Value]:
     sort.
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    topo_order = []
+    for n in node_list:
+        topo_sort_dfs(n, [], topo_order)
+    return topo_order
     ### END YOUR SOLUTION
 
 
 def topo_sort_dfs(node, visited, topo_order):
     """Post-order DFS"""
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    if node in topo_order:
+        return
+    for n in node.inputs:
+        if n not in topo_order:
+            topo_sort_dfs(n, visited, topo_order)
+
+    topo_order.append(node)
     ### END YOUR SOLUTION
 
 
