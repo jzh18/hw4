@@ -249,6 +249,7 @@ class NDArray:
 
         ### BEGIN YOUR SOLUTION
         assert prod(self.shape) == prod(new_shape)
+        # print('------------sum------------')
         # print(f'old shape: {self.shape}')
         # print(f'new shape: {new_shape}')
         # print(f'old stride: {self.strides}')
@@ -257,14 +258,14 @@ class NDArray:
         new_shape_list.reverse()
         new_strides=[self.strides[-1]]
         for i in range(len(new_shape_list)-1):
-            print(new_shape_list[i])
-            s=new_strides[i-1]*new_shape_list[i]
+            s=new_strides[-1]*new_shape_list[i]
             new_strides.append(s)
         new_strides.reverse()
-        print(new_strides)
+        # print(f'new stride: {new_strides}')
+        assert len(new_strides)==len(new_shape)
         array=self.make(new_shape,strides=new_strides, device=self._device,handle=self._handle)
         #raise NotImplementedError()
-#        array=self.make(new_shape, device=self._device,handle=self._handle)
+        #array=self.make(new_shape, device=self._device,handle=self._handle)
         return array
         ### END YOUR SOLUTION
 
@@ -319,38 +320,39 @@ class NDArray:
             point to the same memory as the original array.
         """
         ### BEGIN YOUR SOLUTION
-        # broadcast insert new dims in front
-        broadcast_shape = list(new_shape)
-        broadcast_shape.reverse()
-        input_shape = list(self._shape)
-        input_shape.reverse()
-
-        broad_axes = []
-        final_index = len(broadcast_shape)-1
-        for i, v in enumerate(broadcast_shape):
-            if i < len(input_shape):
-                print(v)
-                if input_shape[i] == 1 and v > 1:
-                    broad_axes.append(final_index-i)
-            else:
-                broad_axes.append(final_index-i)
-        new_stride=list(self._strides)
-        # hanlde NDArray([1])
-        if len(input_shape)==1:
-            new_stride=[]
-        if len(broadcast_shape)!=len(input_shape):
-            for i in broad_axes:
-                new_stride.insert(i,0)
+        if len(self.shape)==1:
+            new_stride=[0]*len(new_shape)
         else:
-            for i in broad_axes:
-                new_stride[i]=0
+        # broadcast insert new dims in front
+            broadcast_shape = list(new_shape)
+            broadcast_shape.reverse()
+            input_shape = list(self._shape)
+            input_shape.reverse()
+
+            broad_axes = []
+            final_index = len(broadcast_shape)-1
+            for i, v in enumerate(broadcast_shape):
+                if i < len(input_shape):
+                    if input_shape[i] == 1 and v > 1:
+                        broad_axes.append(final_index-i)
+                else:
+                    broad_axes.append(final_index-i)
+            new_stride=list(self._strides)
+            
+            if len(broadcast_shape)!=len(input_shape):
+                for i in broad_axes:
+                    new_stride.insert(i,0)
+            else:
+                for i in broad_axes:
+                    new_stride[i]=0
+            print(f'broad_axes: {broad_axes}')
+            print(f'old shape: {self._shape}')
+            print(f'old stride: {self._strides}')
+            print(f'new shape: {new_shape}')
+            print(f'new stride: {new_stride}')
         assert len(new_stride) == len(new_shape)
         array=self.make(new_shape,strides=tuple(new_stride),device=self._device,handle=self._handle)
-        # print(f'broad_axes: {broad_axes}')
-        # print(f'old shape: {self._shape}')
-        # print(f'old stride: {self._strides}')
-        # print(f'new shape: {new_shape}')
-        # print(f'new stride: {new_stride}')
+        
         
         return array
         ### END YOUR SOLUTION
@@ -732,3 +734,6 @@ def summation(a, axis=None, keepdims=False):
 
 def matmul(a,b):
     return a@b
+
+def transpose(a,axes):
+    return a.permute(axes)

@@ -299,7 +299,7 @@ class Summation(TensorOp):
                 for i in self.axes:
                     new_shape[i] = 1
         grad = out_grad.reshape(new_shape).broadcast_to(node.inputs[0].shape)
-
+        print(grad)
         #print(f'summation grad: {grad}')
         # BEGIN YOUR SOLUTION
         return grad
@@ -416,11 +416,14 @@ def relu(a):
 
 class LogSumExp(TensorOp):
     def __init__(self, axes: Optional[tuple] = None):
-        self.axes = axes
+        if type(axes) is int:
+            axes = (axes,)
+        self.axes=axes
 
     def compute(self, Z):
         # BEGIN YOUR SOLUTION
-        max_z = array_api.max(Z, axis=self.axes)
+        max_z = Z.max(axis=self.axes)
+        #array_api.max(Z, axis=self.axes)
 
         if self.axes is not None:
             reshape_size = [1]*len(Z.shape)
@@ -432,7 +435,7 @@ class LogSumExp(TensorOp):
         else:
             new_z = Z-array_api.broadcast_to(max_z, Z.shape)
 
-        res = array_api.log(array_api.sum(
+        res = array_api.log(array_api.summation(
             array_api.exp(new_z), axis=self.axes))+max_z
 
         return res
