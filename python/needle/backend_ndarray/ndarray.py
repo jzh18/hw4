@@ -194,6 +194,8 @@ class NDArray:
 
     def numpy(self):
         """ convert to a numpy array """
+        # print(f'shape: {self.shape}')
+        # print(f'stride: {self.strides}')
         return self.device.to_numpy(
             self._handle, self.shape, self.strides, self._offset
         )
@@ -246,7 +248,24 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        assert prod(self.shape) == prod(new_shape)
+        # print(f'old shape: {self.shape}')
+        # print(f'new shape: {new_shape}')
+        # print(f'old stride: {self.strides}')
+        self.compact()
+        new_shape_list=list(new_shape)
+        new_shape_list.reverse()
+        new_strides=[self.strides[-1]]
+        for i in range(len(new_shape_list)-1):
+            print(new_shape_list[i])
+            s=new_strides[i-1]*new_shape_list[i]
+            new_strides.append(s)
+        new_strides.reverse()
+        print(new_strides)
+        array=self.make(new_shape,strides=new_strides, device=self._device,handle=self._handle)
+        #raise NotImplementedError()
+#        array=self.make(new_shape, device=self._device,handle=self._handle)
+        return array
         ### END YOUR SOLUTION
 
     def permute(self, new_axes):
@@ -271,7 +290,13 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        new_shape=[]
+        new_stride=[]
+        for i in new_axes:
+            new_shape.append(self._shape[i])
+            new_stride.append(self._strides[i])
+        array=self.make(new_shape,strides=tuple(new_stride),device=self._device,handle=self._handle)
+        return array
         ### END YOUR SOLUTION
 
     def broadcast_to(self, new_shape):
@@ -294,7 +319,40 @@ class NDArray:
             point to the same memory as the original array.
         """
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        # broadcast insert new dims in front
+        broadcast_shape = list(new_shape)
+        broadcast_shape.reverse()
+        input_shape = list(self._shape)
+        input_shape.reverse()
+
+        broad_axes = []
+        final_index = len(broadcast_shape)-1
+        for i, v in enumerate(broadcast_shape):
+            if i < len(input_shape):
+                print(v)
+                if input_shape[i] == 1 and v > 1:
+                    broad_axes.append(final_index-i)
+            else:
+                broad_axes.append(final_index-i)
+        new_stride=list(self._strides)
+        # hanlde NDArray([1])
+        if len(input_shape)==1:
+            new_stride=[]
+        if len(broadcast_shape)!=len(input_shape):
+            for i in broad_axes:
+                new_stride.insert(i,0)
+        else:
+            for i in broad_axes:
+                new_stride[i]=0
+        assert len(new_stride) == len(new_shape)
+        array=self.make(new_shape,strides=tuple(new_stride),device=self._device,handle=self._handle)
+        # print(f'broad_axes: {broad_axes}')
+        # print(f'old shape: {self._shape}')
+        # print(f'old stride: {self._strides}')
+        # print(f'new shape: {new_shape}')
+        # print(f'new stride: {new_stride}')
+        
+        return array
         ### END YOUR SOLUTION
 
     ### Get and set elements
@@ -361,7 +419,30 @@ class NDArray:
         assert len(idxs) == self.ndim, "Need indexes equal to number of dimensions"
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        offset=0
+        array=NDArray.make(self._shape,strides=self._strides,device=self._device,handle=self._handle)
+        for i,s in enumerate(idxs):
+            # print(f'idxs: {idxs}')
+            offset+=s.start*array._strides[i]
+            stride=s.step
+            k=(1.0*s.stop-s.start)/stride
+            if k.is_integer():
+                dim_size=int(k)
+            else:
+                dim_size=int(math.floor(k)+1)
+            new_shape=list(array._shape)
+            new_shape[i]=dim_size
+            new_stride=list(array._strides)
+            new_stride[i]=new_stride[i]*stride
+            # print(f'new shape: {new_shape}')
+            # print(f'new stride: {new_stride}')
+            # print(f'offset: {offset}')
+            array=NDArray.make(new_shape,strides=tuple(new_stride),device=array._device,handle=array._handle,offset=offset)
+            #return NDArray(array)
+            #self._init(array)
+            # print(self)
+
+        return array
         ### END YOUR SOLUTION
 
     def __setitem__(self, idxs, other):
@@ -464,6 +545,12 @@ class NDArray:
         out = NDArray.make(self.shape, device=self.device)
         self.device.ewise_div(self.compact()._handle,b._handle, out._handle)
         return out
+    
+    # def subtract(self,b):
+    #     out = NDArray.make(self.shape, device=self.device)
+    #     self.device.ewise_add(self.compact()._handle,(-1*b)._handle, out._handle)
+    #     return out
+
 
     def log(self):
         out = NDArray.make(self.shape, device=self.device)
@@ -642,3 +729,6 @@ def flip(a, axes):
 
 def summation(a, axis=None, keepdims=False):
     return a.sum(axis=axis, keepdims=keepdims)
+
+def matmul(a,b):
+    return a@b

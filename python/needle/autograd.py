@@ -53,6 +53,7 @@ class Op:
             A list containing partial gradient adjoints to be propagated to
             each of the input node.
         """
+        print('>>>>>>>>')
         raise NotImplementedError()
 
     def gradient_as_tuple(self, out_grad: "Value", node: "Value") -> Tuple["Value"]:
@@ -173,6 +174,7 @@ class TensorTuple(Value):
         return needle.ops.tuple_get_item(self, index)
 
     def tuple(self):
+        [print(x) for x in self]
         return tuple([x for x in self])
 
     def __repr__(self):
@@ -315,7 +317,10 @@ class Tensor(Value):
 
     def __pow__(self, other):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        if isinstance(other, Tensor):
+            return needle.ops.PowerScalar(other.cached_data)(self)
+        else:
+            return needle.ops.PowerScalar(other)(self)
         ### END YOUR SOLUTION
 
     def __sub__(self, other):
@@ -384,7 +389,9 @@ def compute_gradient_of_variables(output_tensor, out_grad):
         i.grad = vi
         if i.op is None:
             continue
-
+        # print(f'---------------------------')
+        # print(f'grad shape: {vi.realize_cached_data().shape}')
+        # print(f'grad strides: {vi.realize_cached_data().strides}')
         grads = i.op.gradient_as_tuple(vi, i)
         for j in range(len(i.inputs)):
             k = i.inputs[j]
