@@ -6,6 +6,8 @@ from . import ndarray_backend_numpy
 from . import ndarray_backend_cpu
 
 # math.prod not in Python 3.7
+
+
 def prod(x):
     return reduce(operator.mul, x, 1)
 
@@ -138,7 +140,8 @@ class NDArray:
         array."""
         array = NDArray.__new__(NDArray)
         array._shape = tuple(shape)
-        array._strides = NDArray.compact_strides(shape) if strides is None else strides
+        array._strides = NDArray.compact_strides(
+            shape) if strides is None else strides
         array._offset = offset
         array._device = device if device is not None else default_device()
         if handle is None:
@@ -147,7 +150,7 @@ class NDArray:
             array._handle = handle
         return array
 
-    ### Properies and string representations
+    # Properies and string representations
     @property
     def shape(self):
         return self._shape
@@ -180,7 +183,7 @@ class NDArray:
     def __str__(self):
         return self.numpy().__str__()
 
-    ### Basic array manipulation
+    # Basic array manipulation
     def fill(self, value):
         """ Fill (in place) with a constant value. """
         self._device.fill(self._handle, value)
@@ -247,27 +250,28 @@ class NDArray:
             NDArray : reshaped array; this will point to thep
         """
 
-        ### BEGIN YOUR SOLUTION
+        # BEGIN YOUR SOLUTION
         assert prod(self.shape) == prod(new_shape)
         # print('------------sum------------')
         # print(f'old shape: {self.shape}')
         # print(f'new shape: {new_shape}')
         # print(f'old stride: {self.strides}')
         self.compact()
-        new_shape_list=list(new_shape)
+        new_shape_list = list(new_shape)
         new_shape_list.reverse()
-        new_strides=[self.strides[-1]]
+        new_strides = [self.strides[-1]]
         for i in range(len(new_shape_list)-1):
-            s=new_strides[-1]*new_shape_list[i]
+            s = new_strides[-1]*new_shape_list[i]
             new_strides.append(s)
         new_strides.reverse()
         # print(f'new stride: {new_strides}')
-        assert len(new_strides)==len(new_shape)
-        array=self.make(new_shape,strides=new_strides, device=self._device,handle=self._handle)
+        assert len(new_strides) == len(new_shape)
+        array = self.make(new_shape, strides=new_strides,
+                          device=self._device, handle=self._handle)
         #raise NotImplementedError()
         #array=self.make(new_shape, device=self._device,handle=self._handle)
         return array
-        ### END YOUR SOLUTION
+        # END YOUR SOLUTION
 
     def permute(self, new_axes):
         """
@@ -290,15 +294,16 @@ class NDArray:
             strides changed).
         """
 
-        ### BEGIN YOUR SOLUTION
-        new_shape=[]
-        new_stride=[]
+        # BEGIN YOUR SOLUTION
+        new_shape = []
+        new_stride = []
         for i in new_axes:
             new_shape.append(self._shape[i])
             new_stride.append(self._strides[i])
-        array=self.make(new_shape,strides=tuple(new_stride),device=self._device,handle=self._handle)
+        array = self.make(new_shape, strides=tuple(new_stride),
+                          device=self._device, handle=self._handle)
         return array
-        ### END YOUR SOLUTION
+        # END YOUR SOLUTION
 
     def broadcast_to(self, new_shape):
         """
@@ -319,11 +324,11 @@ class NDArray:
             NDArray: the new NDArray object with the new broadcast shape; should
             point to the same memory as the original array.
         """
-        ### BEGIN YOUR SOLUTION
-        if len(self.shape)==1:
-            new_stride=[0]*len(new_shape)
+        # BEGIN YOUR SOLUTION
+        if len(self.shape) == 1:
+            new_stride = [0]*len(new_shape)
         else:
-        # broadcast insert new dims in front
+            # broadcast insert new dims in front
             broadcast_shape = list(new_shape)
             broadcast_shape.reverse()
             input_shape = list(self._shape)
@@ -337,27 +342,27 @@ class NDArray:
                         broad_axes.append(final_index-i)
                 else:
                     broad_axes.append(final_index-i)
-            new_stride=list(self._strides)
-            
-            if len(broadcast_shape)!=len(input_shape):
+            new_stride = list(self._strides)
+
+            if len(broadcast_shape) != len(input_shape):
                 for i in broad_axes:
-                    new_stride.insert(i,0)
+                    new_stride.insert(i, 0)
             else:
                 for i in broad_axes:
-                    new_stride[i]=0
+                    new_stride[i] = 0
             print(f'broad_axes: {broad_axes}')
             print(f'old shape: {self._shape}')
             print(f'old stride: {self._strides}')
             print(f'new shape: {new_shape}')
             print(f'new stride: {new_stride}')
         assert len(new_stride) == len(new_shape)
-        array=self.make(new_shape,strides=tuple(new_stride),device=self._device,handle=self._handle)
-        
-        
-        return array
-        ### END YOUR SOLUTION
+        array = self.make(new_shape, strides=tuple(new_stride),
+                          device=self._device, handle=self._handle)
 
-    ### Get and set elements
+        return array
+        # END YOUR SOLUTION
+
+    # Get and set elements
 
     def process_slice(self, sl, dim):
         """ Convert a slice to an explicit start/stop/step """
@@ -414,38 +419,42 @@ class NDArray:
             idxs = (idxs,)
         idxs = tuple(
             [
-                self.process_slice(s, i) if isinstance(s, slice) else slice(s, s + 1, 1)
+                self.process_slice(s, i) if isinstance(
+                    s, slice) else slice(s, s + 1, 1)
                 for i, s in enumerate(idxs)
             ]
         )
-        assert len(idxs) == self.ndim, "Need indexes equal to number of dimensions"
+        assert len(
+            idxs) == self.ndim, "Need indexes equal to number of dimensions"
 
-        ### BEGIN YOUR SOLUTION
-        offset=0
-        array=NDArray.make(self._shape,strides=self._strides,device=self._device,handle=self._handle)
-        for i,s in enumerate(idxs):
+        # BEGIN YOUR SOLUTION
+        offset = 0
+        array = NDArray.make(self._shape, strides=self._strides,
+                             device=self._device, handle=self._handle)
+        for i, s in enumerate(idxs):
             # print(f'idxs: {idxs}')
-            offset+=s.start*array._strides[i]
-            stride=s.step
-            k=(1.0*s.stop-s.start)/stride
+            offset += s.start*array._strides[i]
+            stride = s.step
+            k = (1.0*s.stop-s.start)/stride
             if k.is_integer():
-                dim_size=int(k)
+                dim_size = int(k)
             else:
-                dim_size=int(math.floor(k)+1)
-            new_shape=list(array._shape)
-            new_shape[i]=dim_size
-            new_stride=list(array._strides)
-            new_stride[i]=new_stride[i]*stride
+                dim_size = int(math.floor(k)+1)
+            new_shape = list(array._shape)
+            new_shape[i] = dim_size
+            new_stride = list(array._strides)
+            new_stride[i] = new_stride[i]*stride
             # print(f'new shape: {new_shape}')
             # print(f'new stride: {new_stride}')
             # print(f'offset: {offset}')
-            array=NDArray.make(new_shape,strides=tuple(new_stride),device=array._device,handle=array._handle,offset=offset)
-            #return NDArray(array)
-            #self._init(array)
+            array = NDArray.make(new_shape, strides=tuple(
+                new_stride), device=array._device, handle=array._handle, offset=offset)
+            # return NDArray(array)
+            # self._init(array)
             # print(self)
 
         return array
-        ### END YOUR SOLUTION
+        # END YOUR SOLUTION
 
     def __setitem__(self, idxs, other):
         """Set the values of a view into an array, using the same semantics
@@ -470,7 +479,7 @@ class NDArray:
                 view._offset,
             )
 
-    ### Collection of elementwise and scalar function: add, multiply, boolean, etc
+    # Collection of elementwise and scalar function: add, multiply, boolean, etc
 
     def ewise_or_scalar(self, other, ewise_func, scalar_func):
         """Run either an elementwise or scalar version of a function,
@@ -479,7 +488,8 @@ class NDArray:
         out = NDArray.make(self.shape, device=self.device)
         if isinstance(other, NDArray):
             assert self.shape == other.shape, "operation needs two equal-sized arrays"
-            ewise_func(self.compact()._handle, other.compact()._handle, out._handle)
+            ewise_func(self.compact()._handle,
+                       other.compact()._handle, out._handle)
         else:
             scalar_func(self.compact()._handle, other, out._handle)
         return out
@@ -522,7 +532,7 @@ class NDArray:
             other, self.device.ewise_maximum, self.device.scalar_maximum
         )
 
-    ### Binary operators all return (0.0, 1.0) floating point values, could of course be optimized
+    # Binary operators all return (0.0, 1.0) floating point values, could of course be optimized
     def __eq__(self, other):
         return self.ewise_or_scalar(other, self.device.ewise_eq, self.device.scalar_eq)
 
@@ -541,18 +551,17 @@ class NDArray:
     def __le__(self, other):
         return 1 - (self > other)
 
-    ### Elementwise functions
+    # Elementwise functions
 
-    def divide(self,b):
+    def divide(self, b):
         out = NDArray.make(self.shape, device=self.device)
-        self.device.ewise_div(self.compact()._handle,b._handle, out._handle)
+        self.device.ewise_div(self.compact()._handle, b._handle, out._handle)
         return out
-    
+
     # def subtract(self,b):
     #     out = NDArray.make(self.shape, device=self.device)
     #     self.device.ewise_add(self.compact()._handle,(-1*b)._handle, out._handle)
     #     return out
-
 
     def log(self):
         out = NDArray.make(self.shape, device=self.device)
@@ -569,7 +578,7 @@ class NDArray:
         self.device.ewise_tanh(self.compact()._handle, out._handle)
         return out
 
-    ### Matrix multiplication
+    # Matrix multiplication
     def __matmul__(self, other):
         """Matrix multplication of two arrays.  This requires that both arrays
         be 2D (i.e., we don't handle batch matrix multiplication), and that the
@@ -606,8 +615,10 @@ class NDArray:
             t = self.device.__tile_size__
             a = tile(self.compact(), t).compact()
             b = tile(other.compact(), t).compact()
-            out = NDArray.make((a.shape[0], b.shape[1], t, t), device=self.device)
-            self.device.matmul_tiled(a._handle, b._handle, out._handle, m, n, p)
+            out = NDArray.make(
+                (a.shape[0], b.shape[1], t, t), device=self.device)
+            self.device.matmul_tiled(
+                a._handle, b._handle, out._handle, m, n, p)
 
             return (
                 out.permute((0, 2, 1, 3))
@@ -622,7 +633,7 @@ class NDArray:
             )
             return out
 
-    ### Reductions, i.e., sum/max over all element or over given axis
+    # Reductions, i.e., sum/max over all element or over given axis
     def reduce_view_out(self, axis, keepdims=False):
         """ Return a view to the array set up for reduction functions and output array. """
         if isinstance(axis, tuple) and not axis:
@@ -635,7 +646,8 @@ class NDArray:
 
         else:
             if isinstance(axis, (tuple, list)):
-                assert len(axis) == 1, "Only support reduction over a single axis"
+                assert len(
+                    axis) == 1, "Only support reduction over a single axis"
                 axis = axis[0]
 
             view = self.permute(
@@ -651,24 +663,24 @@ class NDArray:
 
     def sum(self, axis=None, keepdims=False):
         view, out = self.reduce_view_out(axis, keepdims=keepdims)
-        self.device.reduce_sum(view.compact()._handle, out._handle, view.shape[-1])
+        self.device.reduce_sum(view.compact()._handle,
+                               out._handle, view.shape[-1])
         return out
 
     def max(self, axis=None, keepdims=False):
         view, out = self.reduce_view_out(axis, keepdims=keepdims)
-        self.device.reduce_max(view.compact()._handle, out._handle, view.shape[-1])
+        self.device.reduce_max(view.compact()._handle,
+                               out._handle, view.shape[-1])
         return out
-
 
     def flip(self, axes):
         """
         Flip this ndarray along the specified axes.
         Note: compact() before returning.
         """
-        ### BEGIN YOUR SOLUTION
+        # BEGIN YOUR SOLUTION
         raise NotImplementedError()
-        ### END YOUR SOLUTION
-
+        # END YOUR SOLUTION
 
     def pad(self, axes):
         """
@@ -676,10 +688,26 @@ class NDArray:
         which lists for _all_ axes the left and right padding amount, e.g.,
         axes = ( (0, 0), (1, 1), (0, 0)) pads the middle axis with a 0 on the left and right side.
         """
-        ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
-        ### END YOUR SOLUTION
+        # BEGIN YOUR SOLUTION
+        new_shape = list(self.shape)
+        for i, a in enumerate(axes):
+            new_shape[i] += a[0]+a[1]
+        print(f'old shape: {self.shape}')
+        print(f'new shape: {new_shape}')
 
+        array = self.device.full(new_shape, 0, self.dtype)
+        idxs = [slice(s) for s in self.shape]
+        for i, a in enumerate(axes):
+            idx=idxs[i]
+            new_idx=slice(idx.start,idx.stop,idx.step)
+            if a[0] != 0:
+                 idxs[i] = slice(a[0],idxs[i].stop,idxs[i].step)
+            if a[1] != 0:
+                idxs[i] = slice(idxs[i].start,idxs[i].stop-a[1],idxs[i].step)  
+        # this might be errorneous
+        array[idxs] = self
+        return array
+        # END YOUR SOLUTION
 
 
 def array(a, dtype="float32", device=None):
@@ -710,7 +738,8 @@ def reshape(array, new_shape):
 def maximum(a, b):
     return a.maximum(b)
 
-def divide(a,b):
+
+def divide(a, b):
     return a.divide(b)
 
 
@@ -725,6 +754,7 @@ def exp(a):
 def tanh(a):
     return a.tanh()
 
+
 def flip(a, axes):
     return a.flip(axes)
 
@@ -732,8 +762,10 @@ def flip(a, axes):
 def summation(a, axis=None, keepdims=False):
     return a.sum(axis=axis, keepdims=keepdims)
 
-def matmul(a,b):
+
+def matmul(a, b):
     return a@b
 
-def transpose(a,axes):
+
+def transpose(a, axes):
     return a.permute(axes)
