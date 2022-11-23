@@ -46,15 +46,15 @@ void Fill(AlignedArray* out, scalar_t val) {
 
 
 
-uint32_t CompactIndex(const std::vector<uint32_t> &cur_num, const std::vector<uint32_t> &strides) {
-    uint32_t index = 0;
+int32_t CompactIndex(const std::vector<int32_t> &cur_num, const std::vector<int32_t> &strides) {
+    int32_t index = 0;
     for (int i = 0; i < cur_num.size(); i++) {
         index += cur_num[i] * strides[i];
     }
     return index;
 }
 
-void IncCurNum(std::vector<uint32_t> &cur_num, const std::vector<uint32_t> &shape, int index) {
+void IncCurNum(std::vector<int32_t> &cur_num, const std::vector<int32_t> &shape, int index) {
     if (index < 0) {
         return;
     }
@@ -68,11 +68,11 @@ void IncCurNum(std::vector<uint32_t> &cur_num, const std::vector<uint32_t> &shap
     }
 }
 
-void IndexToCurNum(std::vector<uint32_t> &cur_num, const std::vector<uint32_t> &shape, uint32_t index) {
+void IndexToCurNum(std::vector<int32_t> &cur_num, const std::vector<int32_t> &shape, int32_t index) {
     for(int i=shape.size()-1;i>=0;i--){
-      uint32_t div=shape[i];
-      uint32_t mod=index%div;
-      uint32_t carry=index/div;
+      int32_t div=shape[i];
+      int32_t mod=index%div;
+      int32_t carry=index/div;
       cur_num[i]=mod;
       index=carry;
     }
@@ -80,8 +80,8 @@ void IndexToCurNum(std::vector<uint32_t> &cur_num, const std::vector<uint32_t> &
 
 
 
-void Compact(const AlignedArray &a, AlignedArray *out, std::vector<uint32_t> shape,
-             std::vector<uint32_t> strides, size_t offset) {
+void Compact(const AlignedArray &a, AlignedArray *out, std::vector<int32_t> shape,
+             std::vector<int32_t> strides, size_t offset) {
     /**
      * Compact an array in memory
      *
@@ -103,15 +103,15 @@ void Compact(const AlignedArray &a, AlignedArray *out, std::vector<uint32_t> sha
 //                for (size_t j = 0; j < shape[1]; j++)
 //                    out->ptr[cnt++] = a.ptr[strides[0]*i + strides[1]*j];
 //            //out[cnt++] = -1;
-    std::vector<uint32_t> cur_num = {};
-    uint32_t total_num = 1;
+    std::vector<int32_t> cur_num = {};
+    int32_t total_num = 1;
     for (int i = shape.size() - 1; i >= 0; i--) {
         total_num *= shape[i];
         cur_num.push_back(0);
     }
 
     int last_index = shape.size() - 1;
-    for (uint32_t i = 0; i < total_num; i++) {
+    for (int32_t i = 0; i < total_num; i++) {
         IndexToCurNum(cur_num,shape,i);
         int compact_index = CompactIndex(cur_num, strides);
         //std::cout<<"Number: "<<i<<", "<<a.ptr[compact_index]<<", ";
@@ -123,8 +123,8 @@ void Compact(const AlignedArray &a, AlignedArray *out, std::vector<uint32_t> sha
 
 
 
-void EwiseSetitem(const AlignedArray& a, AlignedArray* out, std::vector<uint32_t> shape,
-                  std::vector<uint32_t> strides, size_t offset) {
+void EwiseSetitem(const AlignedArray& a, AlignedArray* out, std::vector<int32_t> shape,
+                  std::vector<int32_t> strides, size_t offset) {
   /**
    * Set items in a (non-compact) array
    *
@@ -136,14 +136,14 @@ void EwiseSetitem(const AlignedArray& a, AlignedArray* out, std::vector<uint32_t
    *   offset: offset of the *out* array (not a, which has zero offset, being compact)
    */
   /// BEGIN YOUR SOLUTION
-    std::vector<uint32_t> cur_num = {};
-    uint32_t total_num = 1;
+    std::vector<int32_t> cur_num = {};
+    int32_t total_num = 1;
     for (int i = shape.size() - 1; i >= 0; i--) {
         total_num *= shape[i];
         cur_num.push_back(0);
     }
     int last_index = shape.size() - 1;
-    for (uint32_t i = 0; i < total_num; i++) {
+    for (int32_t i = 0; i < total_num; i++) {
         int compact_index = CompactIndex(cur_num, strides);
         out->ptr[offset+compact_index] = a.ptr[i];
         IncCurNum(cur_num, shape, last_index);
@@ -151,8 +151,8 @@ void EwiseSetitem(const AlignedArray& a, AlignedArray* out, std::vector<uint32_t
   /// END YOUR SOLUTION
 }
 
-void ScalarSetitem(const size_t size, scalar_t val, AlignedArray* out, std::vector<uint32_t> shape,
-                   std::vector<uint32_t> strides, size_t offset) {
+void ScalarSetitem(const size_t size, scalar_t val, AlignedArray* out, std::vector<int32_t> shape,
+                   std::vector<int32_t> strides, size_t offset) {
   /**
    * Set items is a (non-compact) array
    *
@@ -168,14 +168,14 @@ void ScalarSetitem(const size_t size, scalar_t val, AlignedArray* out, std::vect
    */
 
   /// BEGIN YOUR SOLUTION
-    std::vector<uint32_t> cur_num = {};
-    uint32_t total_num = 1;
+    std::vector<int32_t> cur_num = {};
+    int32_t total_num = 1;
     for (int i = shape.size() - 1; i >= 0; i--) {
         total_num *= shape[i];
         cur_num.push_back(0);
     }
     int last_index = shape.size() - 1;
-    for (uint32_t i = 0; i < total_num; i++) {
+    for (int32_t i = 0; i < total_num; i++) {
         int compact_index = CompactIndex(cur_num, strides);
         out->ptr[offset+compact_index] = val;
         IncCurNum(cur_num, shape, last_index);
@@ -353,8 +353,8 @@ void EwiseTanh(const AlignedArray& a, AlignedArray* out) {
 
 /// END YOUR SOLUTION
 
-void Matmul(const AlignedArray& a, const AlignedArray& b, AlignedArray* out, uint32_t m, uint32_t n,
-            uint32_t p) {
+void Matmul(const AlignedArray& a, const AlignedArray& b, AlignedArray* out, int32_t m, int32_t n,
+            int32_t p) {
   /**
    * Multiply two (compact) matrices into an output (also compact) matrix.  For this implementation
    * you can use the "naive" three-loop algorithm.
@@ -430,8 +430,8 @@ void Initialize2DArray(scalar_t* a,scalar_t val){
   }
 }
 
-void MatmulTiled(const AlignedArray& a, const AlignedArray& b, AlignedArray* out, uint32_t m,
-                 uint32_t n, uint32_t p) {
+void MatmulTiled(const AlignedArray& a, const AlignedArray& b, AlignedArray* out, int32_t m,
+                 int32_t n, int32_t p) {
   /**
    * Matrix multiplication on tiled representations of array.  In this setting, a, b, and out
    * are all *4D* compact arrays of the appropriate size, e.g. a is an array of size
@@ -453,10 +453,10 @@ void MatmulTiled(const AlignedArray& a, const AlignedArray& b, AlignedArray* out
    */
   /// BEGIN YOUR SOLUTION
   std::cout<<"matmul tiled...";
-  uint32_t num_per_tile=TILE*TILE;
-  uint32_t row=m/TILE;
-  uint32_t col=p/TILE;
-  uint32_t inner_dim=n/TILE;
+  int32_t num_per_tile=TILE*TILE;
+  int32_t row=m/TILE;
+  int32_t col=p/TILE;
+  int32_t inner_dim=n/TILE;
   // std::cout<<"row:"<<row<<", "<<"col:"<<col<<std::endl;
   // std::cout<<"a.size:"<<a.size<<std::endl;
   // std::cout<<"b.size:"<<b.size<<std::endl;
@@ -465,13 +465,13 @@ void MatmulTiled(const AlignedArray& a, const AlignedArray& b, AlignedArray* out
     //std::cout<<"i: "<<i<<", ";
     for (int j = 0; j < col; j++) {
         //std::cout<<"j: "<<j<<", ";
-        uint32_t index_out=i*col*num_per_tile+j*num_per_tile;
+        int32_t index_out=i*col*num_per_tile+j*num_per_tile;
         // std::cout<<"index_out"<<index_out<<std::endl;
         Initialize2DArray(&(out->ptr[index_out]),0);
         for (int k = 0; k < inner_dim; k++) {
           // std::cout<<"i:"<<i<<", "<<"j:"<<j<<", "<<"k:"<<k<<std::endl;
-          uint32_t index_a=i*inner_dim*num_per_tile+k*num_per_tile;
-          uint32_t index_b=k*col*num_per_tile+j*num_per_tile;
+          int32_t index_a=i*inner_dim*num_per_tile+k*num_per_tile;
+          int32_t index_b=k*col*num_per_tile+j*num_per_tile;
           // std::cout<<"a_index:"<<index_a<<", "<<"b_index:"<<index_b<<std::endl;
           AlignedDot(&(a.ptr[index_a]),&(b.ptr[index_b]), &(out->ptr[index_out]));
         }
@@ -546,11 +546,11 @@ PYBIND11_MODULE(ndarray_backend_cpu, m) {
 
   // return numpy array (with copying for simplicity, otherwise garbage
   // collection is a pain)
-  m.def("to_numpy", [](const AlignedArray& a, std::vector<size_t> shape,
-                       std::vector<size_t> strides, size_t offset) {
-    std::vector<size_t> numpy_strides = strides;
+  m.def("to_numpy", [](const AlignedArray& a, std::vector<int32_t> shape,
+                       std::vector<int32_t> strides, size_t offset) {
+    std::vector<int32_t> numpy_strides = strides;
     std::transform(numpy_strides.begin(), numpy_strides.end(), numpy_strides.begin(),
-                   [](size_t& c) { return c * ELEM_SIZE; });
+                   [](int32_t& c) { return c * ELEM_SIZE; });
     return py::array_t<scalar_t>(shape, numpy_strides, a.ptr + offset);
   });
 

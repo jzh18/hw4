@@ -288,7 +288,7 @@ class Summation(TensorOp):
 
     def gradient(self, out_grad, node):
         if self.axes is None:
-            grad=out_grad.broadcast_to(node.inputs[0].shape)
+            grad = out_grad.broadcast_to(node.inputs[0].shape)
             return grad
 
         new_shape = list(node.inputs[0].shape)
@@ -417,7 +417,7 @@ class LogSumExp(TensorOp):
     def __init__(self, axes: Optional[tuple] = None):
         if type(axes) is int:
             axes = (axes,)
-        self.axes=axes
+        self.axes = axes
 
     def compute(self, Z):
         # BEGIN YOUR SOLUTION
@@ -552,7 +552,7 @@ class Split(TensorTupleOp):
     def compute(self, A):
         # BEGIN YOUR SOLUTION
 
-        res_shape=list(A.shape)
+        res_shape = list(A.shape)
         res_shape.pop(self.axis)
         idxs = []
         for i in A.shape:
@@ -560,7 +560,7 @@ class Split(TensorTupleOp):
         res = []
         for i in range(A.shape[self.axis]):
             idxs[self.axis] = i
-            ele=A[tuple(idxs)].reshape(tuple(res_shape))
+            ele = A[tuple(idxs)].reshape(tuple(res_shape))
             res.append(ele)
         return tuple(res)
         # END YOUR SOLUTION
@@ -581,12 +581,12 @@ class Flip(TensorOp):
 
     def compute(self, a):
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return a.flip(self.axes)
         # END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return out_grad.realize_cached_data().flip(self.axes)
         # END YOUR SOLUTION
 
 

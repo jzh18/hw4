@@ -679,7 +679,32 @@ class NDArray:
         Note: compact() before returning.
         """
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        new_strides = list(self.strides)
+        for i in axes:
+            new_strides[i] = -new_strides[i]
+        axes_offset = [0]*len(self.shape)
+        # check the example in the notebook
+        # a.shape: (3,2,4)
+        # offsets when flip each axis
+        # flip_axis, offset
+        # 2,         3 (4-1)*1
+        # 1,         4 (2-1)*4
+        # 0,         16 (3-1)*2*4
+        ele_num = 1
+        for i in reversed(self.shape):
+            last_first_index = (i-1)*ele_num
+            axes_offset.append(last_first_index)
+            ele_num *= i
+        axes_offset.reverse()
+        offset = 0
+        for i in axes:
+            offset += axes_offset[i]
+        # print(f'offset: {offset}')
+        # print(f'strides: {new_strides}')
+        array = self.make(shape=self.shape, strides=tuple(
+            new_strides), offset=offset, device=self.device, handle=self._handle)
+        # why need to compact? set stride to positive numbers
+        return array.compact()
         # END YOUR SOLUTION
 
     def pad(self, axes):
@@ -697,6 +722,7 @@ class NDArray:
         array = self.device.full(new_shape, 0, self.dtype)
         array2 = self.make(self.shape, self.strides,
                            self.device, self._handle, self._offset)
+
         idxs = [slice(s) for s in new_shape]
         for i, a in enumerate(axes):
             if a[0] != 0:

@@ -45,11 +45,11 @@ CudaDims CudaOneDim(size_t size) {
 
 #define MAX_VEC_SIZE 8
 struct CudaVec {
-  uint32_t size;
+  int32_t size;
   int32_t data[MAX_VEC_SIZE];
 };
 
-CudaVec VecToCuda(const std::vector<uint32_t>& x) {
+CudaVec VecToCuda(const std::vector<int32_t>& x) {
   CudaVec shape;
   if (x.size() > MAX_VEC_SIZE) throw std::runtime_error("Exceeded CUDA supported max dimesions");
   shape.size = x.size();
@@ -79,24 +79,24 @@ void Fill(CudaArray* out, scalar_t val) {
 
 // Untility function to convert contiguous index i to memory location from strides
 
-__device__ void IndexToCurNum(CudaVec &cur_num, const CudaVec &shape, uint32_t index) {
+__device__ void IndexToCurNum(CudaVec &cur_num, const CudaVec &shape, int32_t index) {
     for(int i=shape.size-1;i>=0;i--){
-      uint32_t div=shape.data[i];
-      uint32_t mod=index%div;
-      uint32_t carry=index/div;
+      int32_t div=shape.data[i];
+      int32_t mod=index%div;
+      int32_t carry=index/div;
       cur_num.data[i]=mod;
       index=carry;
     }
 }
 
-__device__ void InitializeVec(CudaVec &cur_num,uint32_t val){
-  for(uint32_t i=0;i<cur_num.size;i++){
+__device__ void InitializeVec(CudaVec &cur_num,int32_t val){
+  for(int32_t i=0;i<cur_num.size;i++){
     cur_num.data[i]=val;
   }
 }
 
-__device__ uint32_t CompactIndex(CudaVec &cur_num, const CudaVec &strides) {
-    uint32_t index = 0;
+__device__ int32_t CompactIndex(CudaVec &cur_num, const CudaVec &strides) {
+    int32_t index = 0;
     for (int i = 0; i < cur_num.size; i++) {
         index += cur_num.data[i] * strides.data[i];
     }
@@ -131,22 +131,22 @@ __global__ void CompactKernel(const scalar_t* a, scalar_t* out, size_t size, Cud
     cur_num.size=shape.size;
     InitializeVec(cur_num,0);
     // int val=0;
-    // for(uint32_t j=0;j<cur_num.size;j++){
+    // for(int32_t j=0;j<cur_num.size;j++){
     //   cur_num.data[j]=val;
     // }
 
     IndexToCurNum(cur_num,shape,i);
     // int index=i;
     // for(int j=shape.size-1;j>=0;j--){
-    //   uint32_t div=shape.data[j];
-    //   uint32_t mod=index%div;
-    //   uint32_t carry=index/div;
+    //   int32_t div=shape.data[j];
+    //   int32_t mod=index%div;
+    //   int32_t carry=index/div;
     //   cur_num.data[j]=mod;
     //   index=carry;
     // }
 
-    uint32_t compact_index=CompactIndex(cur_num,strides);
-    // uint32_t compact_index = 0;
+    int32_t compact_index=CompactIndex(cur_num,strides);
+    // int32_t compact_index = 0;
     // for (int j = 0; j < cur_num.size; j++) {
     //     compact_index += cur_num.data[j] * strides.data[j];
     // }
@@ -157,8 +157,8 @@ __global__ void CompactKernel(const scalar_t* a, scalar_t* out, size_t size, Cud
   /// END YOUR SOLUTION
 }
 
-void Compact(const CudaArray& a, CudaArray* out, std::vector<uint32_t> shape,
-             std::vector<uint32_t> strides, size_t offset) {
+void Compact(const CudaArray& a, CudaArray* out, std::vector<int32_t> shape,
+             std::vector<int32_t> strides, size_t offset) {
   /**
    * Compact an array in memory.  Unlike the C++ version, in CUDA this will primarily call the 
    * relevant CUDA kernel.  In this case, we illustrate how you should set this up (i.e., we give 
@@ -200,7 +200,7 @@ __global__ void EwiseSetitemKernel(const scalar_t* a, scalar_t* out, size_t size
     IndexToCurNum(cur_num,shape,i);
     
 
-    uint32_t compact_index=CompactIndex(cur_num,strides);
+    int32_t compact_index=CompactIndex(cur_num,strides);
     
     
     out[offset+compact_index]=a[i];
@@ -209,8 +209,8 @@ __global__ void EwiseSetitemKernel(const scalar_t* a, scalar_t* out, size_t size
 }
 
 
-void EwiseSetitem(const CudaArray& a, CudaArray* out, std::vector<uint32_t> shape,
-                  std::vector<uint32_t> strides, size_t offset) {
+void EwiseSetitem(const CudaArray& a, CudaArray* out, std::vector<int32_t> shape,
+                  std::vector<int32_t> strides, size_t offset) {
   /**
    * Set items in a (non-compact) array using CUDA.  Yyou will most likely want to implement a
    * EwiseSetitemKernel() function, similar to those above, that will do the actual work.
@@ -251,7 +251,7 @@ __global__ void ScalarSetitemKernel(scalar_t a, scalar_t* out, size_t size, Cuda
     IndexToCurNum(cur_num,shape,i);
     
 
-    uint32_t compact_index=CompactIndex(cur_num,strides);
+    int32_t compact_index=CompactIndex(cur_num,strides);
     
     
     out[offset+compact_index]=a;
@@ -259,8 +259,8 @@ __global__ void ScalarSetitemKernel(scalar_t a, scalar_t* out, size_t size, Cuda
 
 }
 
-void ScalarSetitem(size_t size, scalar_t val, CudaArray* out, std::vector<uint32_t> shape,
-                   std::vector<uint32_t> strides, size_t offset) {
+void ScalarSetitem(size_t size, scalar_t val, CudaArray* out, std::vector<int32_t> shape,
+                   std::vector<int32_t> strides, size_t offset) {
   /**
    * Set items is a (non-compact) array
    * 
@@ -471,8 +471,8 @@ void EwiseTanh(const CudaArray& a, CudaArray* out) {
 ////////////////////////////////////////////////////////////////////////////////
 
 
-__global__ void MatmulKernel(const scalar_t* a, const scalar_t* b, scalar_t* out, size_t size,uint32_t M, uint32_t N,
-            uint32_t P) {
+__global__ void MatmulKernel(const scalar_t* a, const scalar_t* b, scalar_t* out, size_t size,int32_t M, int32_t N,
+            int32_t P) {
   size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
   if (gid < size){
     out[gid]=0;
@@ -485,8 +485,8 @@ __global__ void MatmulKernel(const scalar_t* a, const scalar_t* b, scalar_t* out
     }
   }
 }
-void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, uint32_t N,
-            uint32_t P) {
+void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, int32_t M, int32_t N,
+            int32_t P) {
   /**
    * Multiply two (compact) matrices into an output (also comapct) matrix.  You will want to look
    * at the lecture and notes on GPU-based linear algebra to see how to do this.  Since ultimately
@@ -596,11 +596,11 @@ PYBIND11_MODULE(ndarray_backend_cuda, m) {
       .def("ptr", &CudaArray::ptr_as_int);
 
   // return numpy array, copying from CPU
-  m.def("to_numpy", [](const CudaArray& a, std::vector<size_t> shape, std::vector<size_t> strides,
+  m.def("to_numpy", [](const CudaArray& a, std::vector<int32_t> shape, std::vector<int32_t> strides,
                        size_t offset) {
-    std::vector<size_t> numpy_strides = strides;
+    std::vector<int32_t> numpy_strides = strides;
     std::transform(numpy_strides.begin(), numpy_strides.end(), numpy_strides.begin(),
-                   [](size_t& c) { return c * ELEM_SIZE; });
+                   [](int32_t& c) { return c * ELEM_SIZE; });
 
     // copy memory to host
     scalar_t* host_ptr = (scalar_t*)std::malloc(a.size * ELEM_SIZE);
