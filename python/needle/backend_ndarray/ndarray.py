@@ -641,8 +641,8 @@ class NDArray:
 
         if axis is None:
             view = self.compact().reshape((1,) * (self.ndim - 1) + (prod(self.shape),))
-            out = NDArray.make((1,) * (self.ndim if keepdims else 1), device=self.device)
-
+            out = NDArray.make(
+                (1,) * (self.ndim if keepdims else 1), device=self.device)
 
         else:
             if isinstance(axis, (tuple, list)):
@@ -692,22 +692,19 @@ class NDArray:
         new_shape = list(self.shape)
         for i, a in enumerate(axes):
             new_shape[i] += a[0]+a[1]
-        print(f'old shape: {self.shape}')
-        print(f'new shape: {new_shape}')
 
+        # inefficient
         array = self.device.full(new_shape, 0, self.dtype)
-        idxs = [slice(s) for s in self.shape]
+        array2 = self.make(self.shape, self.strides,
+                           self.device, self._handle, self._offset)
+        idxs = [slice(s) for s in new_shape]
         for i, a in enumerate(axes):
-            idx=idxs[i]
-            new_idx=slice(idx.start,idx.stop,idx.step)
             if a[0] != 0:
-                 idxs[i] = slice(a[0],idxs[i].stop,idxs[i].step)
+                idxs[i] = slice(a[0], idxs[i].stop, idxs[i].step)
             if a[1] != 0:
-                idxs[i] = slice(idxs[i].start,idxs[i].stop-a[1],idxs[i].step)  
-        # this might be errorneous
-        print(idxs)
-        #array[idxs] = self
-        array[idxs] = self
+                idxs[i] = slice(idxs[i].start, idxs[i].stop-a[1], idxs[i].step)
+        array[tuple(idxs)] = array2
+
         return array
         # END YOUR SOLUTION
 
