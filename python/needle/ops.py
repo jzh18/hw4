@@ -299,7 +299,6 @@ class Summation(TensorOp):
                 for i in self.axes:
                     new_shape[i] = 1
         grad = out_grad.reshape(new_shape).broadcast_to(node.inputs[0].shape)
-        print(grad)
         #print(f'summation grad: {grad}')
         # BEGIN YOUR SOLUTION
         return grad
@@ -445,7 +444,7 @@ class LogSumExp(TensorOp):
         # BEGIN YOUR SOLUTION
         data = node.inputs[0].realize_cached_data()
 
-        max_z = array_api.max(data, axis=self.axes)
+        max_z = data.max(axis=self.axes)
 
         if self.axes is not None:
             reshape_size = [1]*len(data.shape)
@@ -457,7 +456,7 @@ class LogSumExp(TensorOp):
 
         exps = array_api.exp(data-max_z)
 
-        exps_down = array_api.sum(exps, axis=self.axes)
+        exps_down = array_api.summation(exps, axis=self.axes)
         if self.axes is not None:
             reshape_size = [1]*len(data.shape)
             for i in range(len(data.shape)):
@@ -468,8 +467,8 @@ class LogSumExp(TensorOp):
             resize_out_grad = out_grad.reshape(reshape_size)
             out_grad = resize_out_grad.broadcast_to(data.shape)
 
-        res = Tensor(array_api.multiply(
-            out_grad.realize_cached_data(), exps/exps_down))
+        res = Tensor(
+            out_grad.realize_cached_data() * exps/exps_down)
 
         #print(f'logsumexp grad: {res}')
         return res

@@ -350,11 +350,11 @@ class NDArray:
             else:
                 for i in broad_axes:
                     new_stride[i] = 0
-            print(f'broad_axes: {broad_axes}')
-            print(f'old shape: {self._shape}')
-            print(f'old stride: {self._strides}')
-            print(f'new shape: {new_shape}')
-            print(f'new stride: {new_stride}')
+            # print(f'broad_axes: {broad_axes}')
+            # print(f'old shape: {self._shape}')
+            # print(f'old stride: {self._strides}')
+            # print(f'new shape: {new_shape}')
+            # print(f'new stride: {new_stride}')
         assert len(new_stride) == len(new_shape)
         array = self.make(new_shape, strides=tuple(new_stride),
                           device=self._device, handle=self._handle)
@@ -705,6 +705,8 @@ class NDArray:
             if a[1] != 0:
                 idxs[i] = slice(idxs[i].start,idxs[i].stop-a[1],idxs[i].step)  
         # this might be errorneous
+        print(idxs)
+        #array[idxs] = self
         array[idxs] = self
         return array
         # END YOUR SOLUTION
