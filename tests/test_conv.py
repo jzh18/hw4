@@ -633,6 +633,9 @@ def submit_new_ops():
         else:
             return Y
 
+    #DoDilate((2, 2), (2,), 1)
+    #DoDilate((2, 2), (2,), 1, backward=True)
+
     # flip
     MugradeSubmit(DoFlip((2, 2, 3, 1), (1,2)))
     MugradeSubmit(DoFlip((2, 1, 3, 2), (0,1,2,3)))
