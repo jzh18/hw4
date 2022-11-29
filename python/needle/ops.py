@@ -667,21 +667,24 @@ class Conv(TensorOp):
         self.padding = padding
 
     def compute(self, A, B):
+        print(f'stride: {self.stride}')
+        print(f'padding: {self.padding}')
         # BEGIN YOUR SOLUTION
         N, H, W, C_in = A.shape
         K, _, _, C_out = B.shape
         Ns, Hs, Ws, Cs = A.strides
 
         inner_dim = K*K*C_in
-
-        new_shape = (N, H-K+1, W-K+1, K, K, C_in)
+        h_out = int(((H+2*self.padding-K)/self.stride)+1)
+        w_out = int(((W+2*self.padding-K)/self.stride)+1)
+        new_shape = (N, h_out, w_out, K, K, C_in)
         new_strides = (Ns, Hs, Ws, Hs, Ws, Cs)
         A = NDArray.make(new_shape, strides=new_strides,
-                         device=A._device, handle=A._handle, offset=A._offset).compact().reshape((N*(H-K+1)*(W-K+1), inner_dim))
+                         device=A._device, handle=A._handle, offset=A._offset).compact().reshape((N*h_out*w_out, inner_dim))
         print(f'my impl: {A}')
 
         out = A@B.reshape((K*K*C_in, C_out))
-        return out.reshape((N, H-K+1, W-K+1, C_out))
+        return out.reshape((N, h_out, w_out, C_out))
         # END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
