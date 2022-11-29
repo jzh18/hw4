@@ -669,22 +669,39 @@ class Conv(TensorOp):
     def compute(self, A, B):
         print(f'stride: {self.stride}')
         print(f'padding: {self.padding}')
+        # print(f'A: {A[0,:,:,0]}')
         # BEGIN YOUR SOLUTION
         N, H, W, C_in = A.shape
+        padded_shape = (N, H+2*self.padding, W+2*self.padding, C_in)
+        N, H, W, C_in = padded_shape
+
+        if self.padding == 0:
+            padded_A = A
+        else:
+            padded_A = array_api.full(padded_shape, 0, device=A._device)
+            padded_A[:, self.padding:-self.padding,
+                     self.padding:-self.padding, :] = A
+        # print(f'padded A: {padded_A[0,:,:,0]}')
+
         K, _, _, C_out = B.shape
-        Ns, Hs, Ws, Cs = A.strides
+        Ns, Hs, Ws, Cs = padded_A.strides
 
         inner_dim = K*K*C_in
-        h_out = int(((H+2*self.padding-K)/self.stride)+1)
-        w_out = int(((W+2*self.padding-K)/self.stride)+1)
+        # h_out = int((H+2*self.padding-K)/self.stride+1)
+        # w_out = int((W+2*self.padding-K)/self.stride+1)
+        h_out=H-K+1
+        w_out=W-K+1
         new_shape = (N, h_out, w_out, K, K, C_in)
         new_strides = (Ns, Hs, Ws, Hs, Ws, Cs)
         A = NDArray.make(new_shape, strides=new_strides,
-                         device=A._device, handle=A._handle, offset=A._offset).compact().reshape((N*h_out*w_out, inner_dim))
-        print(f'my impl: {A}')
+                         device=padded_A._device, handle=padded_A._handle, offset=padded_A._offset).compact()
+        print(f'A ele: {A[0,0,0,:,:,0]}')
+        A = A.reshape((N*h_out*w_out, inner_dim))
 
         out = A@B.reshape((K*K*C_in, C_out))
-        return out.reshape((N, h_out, w_out, C_out))
+        out = out.reshape((N, h_out, w_out, C_out))
+        
+        return out
         # END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
