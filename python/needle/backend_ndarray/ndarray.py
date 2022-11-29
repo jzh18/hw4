@@ -251,6 +251,7 @@ class NDArray:
         """
 
         # BEGIN YOUR SOLUTION
+        print(f'self shape: {self.shape}, new_shape: {new_shape}')
         assert prod(self.shape) == prod(new_shape)
         # print('------------sum------------')
         # print(f'old shape: {self.shape}')
