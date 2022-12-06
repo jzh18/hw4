@@ -470,7 +470,7 @@ def test_op_conv(Z_shape, W_shape, stride, padding, backward, device):
     print(f'Z {Z}')
     W = ndl.Tensor(_W, device=device)
     y = ndl.conv(Z, W, padding=padding, stride=stride)
-    print(f'my: {y.numpy().shape}')
+    print(f'my: {y.numpy()}')
     y2 = y.sum()
     if backward:
         y2.backward()
@@ -480,7 +480,7 @@ def test_op_conv(Z_shape, W_shape, stride, padding, backward, device):
     Wtch.requires_grad = True
     out = torch.nn.functional.conv2d(Ztch.permute(0, 3, 1, 2), Wtch.permute(
         3, 2, 0, 1), padding=padding, stride=stride)
-    print(f'expected: {out.shape}')
+    print(f'expected: {out.permute(0, 3, 1, 2)}')
     out2 = out.sum()
     if backward:
         out2.backward()

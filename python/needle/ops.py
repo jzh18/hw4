@@ -7,6 +7,7 @@ from .autograd import Op, Tensor, Value, TensorOp
 from .autograd import TensorTuple, TensorTupleOp
 from . import init
 import numpy
+import math
 
 from .backend_selection import array_api, NDArray
 
@@ -689,18 +690,35 @@ class Conv(TensorOp):
         inner_dim = K*K*C_in
         # h_out = int((H+2*self.padding-K)/self.stride+1)
         # w_out = int((W+2*self.padding-K)/self.stride+1)
-        h_out=H-K+1
-        w_out=W-K+1
+        # h_out = math.floor((H-K)/self.stride)+1
+        # w_out = math.floor((W-K)/self.stride)+1
+        h_out = H-K+1
+        w_out = W-K+1
+        print(f'h_out: {h_out}, w_out: {w_out}')
         new_shape = (N, h_out, w_out, K, K, C_in)
         new_strides = (Ns, Hs, Ws, Hs, Ws, Cs)
+
+        # must need to be compacted
         A = NDArray.make(new_shape, strides=new_strides,
                          device=padded_A._device, handle=padded_A._handle, offset=padded_A._offset).compact()
-        print(f'A ele: {A[0,0,0,:,:,0]}')
-        A = A.reshape((N*h_out*w_out, inner_dim))
+
+        hs_strided_idxs = slice(0, h_out, self.stride)
+        ws_strided_idxs = slice(0, h_out, self.stride)
+        print(f'before: {A.shape}')
+        print(f'A ele: {A[0,0,2,:,:,0]}')
+
+        # must need to be compacted
+        A = A[:, hs_strided_idxs, ws_strided_idxs, :, :, :].compact()
+        print(f'after: {A.shape}')
+        print(f'A ele: {A[0,0,1,:,:,0]}')
+
+        final_h_out = math.floor((H-K)/self.stride)+1
+        final_w_out = math.floor((W-K)/self.stride)+1
+        A = A.reshape((N*final_h_out*final_w_out, inner_dim))
 
         out = A@B.reshape((K*K*C_in, C_out))
-        out = out.reshape((N, h_out, w_out, C_out))
-        
+        out = out.reshape((N, final_h_out, final_w_out, C_out))
+
         return out
         # END YOUR SOLUTION
 
