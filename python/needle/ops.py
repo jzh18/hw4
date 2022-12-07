@@ -668,21 +668,13 @@ class Conv(TensorOp):
         self.padding = padding
 
     def compute(self, A, B):
-        print(f'stride: {self.stride}')
-        print(f'padding: {self.padding}')
+        # print(f'stride: {self.stride}')
+        # print(f'padding: {self.padding}')
         # print(f'A: {A[0,:,:,0]}')
         # BEGIN YOUR SOLUTION
-        N, H, W, C_in = A.shape
-        padded_shape = (N, H+2*self.padding, W+2*self.padding, C_in)
-        N, H, W, C_in = padded_shape
-
-        if self.padding == 0:
-            padded_A = A
-        else:
-            padded_A = array_api.full(padded_shape, 0, device=A._device)
-            padded_A[:, self.padding:-self.padding,
-                     self.padding:-self.padding, :] = A
-        # print(f'padded A: {padded_A[0,:,:,0]}')
+        padded_A = A.pad(((0, 0), (self.padding, self.padding),
+                         (self.padding, self.padding), (0, 0)))
+        N, H, W, C_in = padded_A.shape
 
         K, _, _, C_out = B.shape
         Ns, Hs, Ws, Cs = padded_A.strides
@@ -694,7 +686,7 @@ class Conv(TensorOp):
         # w_out = math.floor((W-K)/self.stride)+1
         h_out = H-K+1
         w_out = W-K+1
-        print(f'h_out: {h_out}, w_out: {w_out}')
+        # print(f'h_out: {h_out}, w_out: {w_out}')
         new_shape = (N, h_out, w_out, K, K, C_in)
         new_strides = (Ns, Hs, Ws, Hs, Ws, Cs)
 
@@ -704,16 +696,19 @@ class Conv(TensorOp):
 
         hs_strided_idxs = slice(0, h_out, self.stride)
         ws_strided_idxs = slice(0, h_out, self.stride)
-        print(f'before: {A.shape}')
-        print(f'A ele: {A[0,0,2,:,:,0]}')
+        # print(f'before: {A.shape}')
+        # print(f'A ele: {A[0,0,2,:,:,0]}')
 
         # must need to be compacted
+        # looks like if you need underlayer (C++/C) operation, you need to compact the array
         A = A[:, hs_strided_idxs, ws_strided_idxs, :, :, :].compact()
-        print(f'after: {A.shape}')
-        print(f'A ele: {A[0,0,1,:,:,0]}')
+        # print(f'after: {A.shape}')
+        # print(f'A ele: {A[0,0,1,:,:,0]}')
 
         final_h_out = math.floor((H-K)/self.stride)+1
         final_w_out = math.floor((W-K)/self.stride)+1
+        
+
         A = A.reshape((N*final_h_out*final_w_out, inner_dim))
 
         out = A@B.reshape((K*K*C_in, C_out))
@@ -724,7 +719,33 @@ class Conv(TensorOp):
 
     def gradient(self, out_grad, node):
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        # out_grad: N,H-K+1,W-K+1,C_out
+        print(f'out_grad shape: {out_grad.shape}')
+        X, W = node.inputs
+        print(f'W shape: {W.shape}')
+        _W = flip(W, (0, 1))
+        _W = transpose(_W, (2, 3))  # K,K,C_out,C_in
+        print(f'_W shape: {_W.shape}')
+        X_grad = conv(out_grad, _W, padding=_W.shape[0]-1)  # N,H,W,C_in
+        print(f'X_grad shape: {X_grad.shape}')
+        print(f'X_grad: {X_grad}')
+
+        print(f'X_shape: {X.shape}')
+        _X = transpose(X, (0, 3))  # C_in,H,W,N
+        print(f'_X shape: {_X.shape}')
+        # looks like we assume H=W, so that we can think _out_grad as a kernel
+        _out_grad = transpose(out_grad, (0, 2))  # H-K+1,W-K+1,N,C_out
+        print(f'_out_grad shape: {_out_grad.shape}')
+        
+        W_grad = conv(_X, _out_grad, padding=0)  # C_in,K,K,C_out
+        print(f'W_grad shape: {W_grad.shape}')
+        W_grad = transpose(W_grad, (0, 1)) 
+        W_grad = transpose(W_grad, (1, 2)) # K,K,C_in,C_out, https://forum.dlsyscourse.org/t/q3-convolution-backward/2824
+        
+        print(f'W_grad shape: {W_grad.shape}')
+        print(f'W_grad: {W_grad}')
+
+        return X_grad, W_grad
         # END YOUR SOLUTION
 
 
