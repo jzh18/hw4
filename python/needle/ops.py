@@ -707,7 +707,6 @@ class Conv(TensorOp):
 
         final_h_out = math.floor((H-K)/self.stride)+1
         final_w_out = math.floor((W-K)/self.stride)+1
-        
 
         A = A.reshape((N*final_h_out*final_w_out, inner_dim))
 
@@ -720,13 +719,17 @@ class Conv(TensorOp):
     def gradient(self, out_grad, node):
         # BEGIN YOUR SOLUTION
         # out_grad: N,H-K+1,W-K+1,C_out
+        # padding: N,H-K+1+2*pad,W-K+1+2*pad,C_out
         print(f'out_grad shape: {out_grad.shape}')
         X, W = node.inputs
         print(f'W shape: {W.shape}')
         _W = flip(W, (0, 1))
         _W = transpose(_W, (2, 3))  # K,K,C_out,C_in
+
         print(f'_W shape: {_W.shape}')
-        X_grad = conv(out_grad, _W, padding=_W.shape[0]-1)  # N,H,W,C_in
+        # N,H,W,C_in
+        # what if padding is very large?
+        X_grad = conv(out_grad, _W, padding=_W.shape[0]-1-self.padding)
         print(f'X_grad shape: {X_grad.shape}')
         print(f'X_grad: {X_grad}')
 
@@ -734,14 +737,16 @@ class Conv(TensorOp):
         _X = transpose(X, (0, 3))  # C_in,H,W,N
         print(f'_X shape: {_X.shape}')
         # looks like we assume H=W, so that we can think _out_grad as a kernel
-        _out_grad = transpose(out_grad, (0, 2))  # H-K+1,W-K+1,N,C_out
+        # H-K+1,W-K+1,N,C_out; padding:N,H-K+1+2*pad,W-K+1+2*pad,C_out
+        _out_grad = transpose(out_grad, (0, 2))
         print(f'_out_grad shape: {_out_grad.shape}')
-        
-        W_grad = conv(_X, _out_grad, padding=0)  # C_in,K,K,C_out
+
+        W_grad = conv(_X, _out_grad, padding=self.padding)  # C_in,K,K,C_out
         print(f'W_grad shape: {W_grad.shape}')
-        W_grad = transpose(W_grad, (0, 1)) 
-        W_grad = transpose(W_grad, (1, 2)) # K,K,C_in,C_out, https://forum.dlsyscourse.org/t/q3-convolution-backward/2824
-        
+        W_grad = transpose(W_grad, (0, 1))
+        # K,K,C_in,C_out, https://forum.dlsyscourse.org/t/q3-convolution-backward/2824
+        W_grad = transpose(W_grad, (1, 2))
+
         print(f'W_grad shape: {W_grad.shape}')
         print(f'W_grad: {W_grad}')
 
