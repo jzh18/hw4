@@ -303,8 +303,8 @@ class NDArray:
         array = self.make(new_shape, strides=tuple(new_stride),
                           device=self._device, handle=self._handle)
 
-        # TODO: must be compact, or else conv backward will fail.
-        return array.compact()
+
+        return array
         # END YOUR SOLUTION
 
     def broadcast_to(self, new_shape):

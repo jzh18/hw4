@@ -710,6 +710,9 @@ class Conv(TensorOp):
 
         A = A.reshape((N*final_h_out*final_w_out, inner_dim))
 
+        # TODO: must need to be compacted
+        # looks like if you need underlayer (C++/C) operation, you need to compact the array
+        B=B.compact()
         out = A@B.reshape((K*K*C_in, C_out))
         out = out.reshape((N, final_h_out, final_w_out, C_out))
 
