@@ -692,14 +692,14 @@ class Conv(TensorOp):
 
         # must need to be compacted
         A = NDArray.make(new_shape, strides=new_strides,
-                         device=padded_A._device, handle=padded_A._handle, offset=padded_A._offset).compact()
+                         device=padded_A._device, handle=padded_A._handle, offset=padded_A._offset)
 
         hs_strided_idxs = slice(0, h_out, self.stride)
         ws_strided_idxs = slice(0, h_out, self.stride)
         # print(f'before: {A.shape}')
         # print(f'A ele: {A[0,0,2,:,:,0]}')
 
-        # must need to be compacted
+        # TODO: must need to be compacted
         # looks like if you need underlayer (C++/C) operation, you need to compact the array
         A = A[:, hs_strided_idxs, ws_strided_idxs, :, :, :].compact()
         # print(f'after: {A.shape}')
@@ -719,26 +719,30 @@ class Conv(TensorOp):
     def gradient(self, out_grad, node):
         # BEGIN YOUR SOLUTION
         # out_grad: N,H-K+1,W-K+1,C_out
-        # padding: N,H-K+1+2*pad,W-K+1+2*pad,C_out
+        # padding: N,H-K+2*pad+1,W-K+2*pad+1,C_out
+        # stride: N,(H-K+2*pad)/s+1,(W-K+2*pad)/s+1,C_out
         print(f'out_grad shape: {out_grad.shape}')
+        print(f'stride: {self.stride}')
+        _out_grad = dilate(out_grad, (1, 2), self.stride-1)
+        print(f'_out_grad shape: {_out_grad.shape}')
         X, W = node.inputs
         print(f'W shape: {W.shape}')
         _W = flip(W, (0, 1))
         _W = transpose(_W, (2, 3))  # K,K,C_out,C_in
+        
 
         print(f'_W shape: {_W.shape}')
         # N,H,W,C_in
         # what if padding is very large?
-        X_grad = conv(out_grad, _W, padding=_W.shape[0]-1-self.padding)
+        X_grad = conv(_out_grad, _W, padding=_W.shape[0]-1-self.padding)
         print(f'X_grad shape: {X_grad.shape}')
-        print(f'X_grad: {X_grad}')
 
         print(f'X_shape: {X.shape}')
         _X = transpose(X, (0, 3))  # C_in,H,W,N
         print(f'_X shape: {_X.shape}')
         # looks like we assume H=W, so that we can think _out_grad as a kernel
-        # H-K+1,W-K+1,N,C_out; padding:N,H-K+1+2*pad,W-K+1+2*pad,C_out
-        _out_grad = transpose(out_grad, (0, 2))
+        # H-K+1,W-K+1,N,C_out; padding:N,H-K+1+2*pad,W-K+1+2*pad,C_out; stride:  N,(H-K+2*pad)/s+1,(W-K+2*pad)/s+1,C_out
+        _out_grad = transpose(_out_grad, (0, 2))
         print(f'_out_grad shape: {_out_grad.shape}')
 
         W_grad = conv(_X, _out_grad, padding=self.padding)  # C_in,K,K,C_out
@@ -748,7 +752,7 @@ class Conv(TensorOp):
         W_grad = transpose(W_grad, (1, 2))
 
         print(f'W_grad shape: {W_grad.shape}')
-        print(f'W_grad: {W_grad}')
+        
 
         return X_grad, W_grad
         # END YOUR SOLUTION
