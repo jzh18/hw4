@@ -70,25 +70,38 @@ def ones_like(array, *, device=None, requires_grad=False):
 
 def xavier_uniform(fan_in, fan_out, shape=None, gain=1.0, **kwargs):
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    high = math.sqrt(6/(fan_in+fan_out))*gain
+    low = -high
+    return rand(fan_in * fan_out, low=low, high=high, **kwargs).reshape((fan_in, fan_out))
     ### END YOUR SOLUTION
 
 
 def xavier_normal(fan_in, fan_out, shape=None, gain=1.0, **kwargs):
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    std = math.sqrt(2/(fan_in+fan_out))*gain
+    return randn(fan_in * fan_out, std=std, **kwargs).reshape((fan_in, fan_out))
     ### END YOUR SOLUTION
 
 
 def kaiming_uniform(fan_in, fan_out, shape=None, nonlinearity="relu", **kwargs):
     assert nonlinearity == "relu", "Only relu supported currently"
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    gain = math.sqrt(2)
+    bound = math.sqrt(3/fan_in)*gain
+    l=1
+    for i in shape:
+        l*=i
+    return rand(l, low=-bound, high=bound, **kwargs).reshape(shape)
     ### END YOUR SOLUTION
 
 
 def kaiming_normal(fan_in, fan_out, shape=None, nonlinearity="relu", **kwargs):
     assert nonlinearity == "relu", "Only relu supported currently"
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    gain = math.sqrt(2)
+    std = math.sqrt(1/fan_in)*gain
+    l=1
+    for i in shape:
+        l*=i
+    return randn(l, std=std, **kwargs).reshape(shape)
     ### END YOUR SOLUTION
