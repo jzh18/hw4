@@ -346,13 +346,18 @@ conv_forward_params = [
 def test_nn_conv_forward(s, cin, cout, k, stride, device):
     np.random.seed(0)
     import torch
-    f = ndl.nn.Conv(cin, cout, k, stride=stride, device=device)
+    f = ndl.nn.Conv(cin, cout, k, stride=stride, device=device,bias=True)
     x = ndl.init.rand(10, cin, s, s, device=device)
 
-    g = torch.nn.Conv2d(cin, cout, k, stride=stride, padding=k//2)
+    g = torch.nn.Conv2d(cin, cout, k, stride=stride, padding=k//2,bias=True)
     g.weight.data = torch.tensor(f.weight.cached_data.numpy().transpose(3, 2, 0, 1))
     g.bias.data = torch.tensor(f.bias.cached_data.numpy())
     z = torch.tensor(x.cached_data.numpy())
+
+    my=f(x).cached_data.numpy()
+    expected=g(z).data.numpy()
+    print(f'my: {my.shape}')
+    print(f'expected: {expected.shape}')
 
     assert np.linalg.norm(f(x).cached_data.numpy() - g(z).data.numpy()) < 1e-3
 

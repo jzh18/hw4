@@ -323,7 +323,7 @@ class Conv(Module):
         self.out_channels = out_channels
         self.kernel_size = kernel_size
         self.stride = stride
-        self.bias = bias
+        self.bias = None
         print(f'out channel: {out_channels}')
         # BEGIN YOUR SOLUTION
         fan_in = self.kernel_size*self.kernel_size*self.in_channels
@@ -341,19 +341,22 @@ class Conv(Module):
         # BEGIN YOUR SOLUTION
         N, C, H, W = x.shape
         print(f'original shape: {x.shape}')
-        padding = 0
-        if self.stride == 1:
-            padding = (self.kernel_size-1)//2
+        print(f'kernel shape: {self.weight.shape}')
+        print(f'stride: {self.stride}')
+        
+        padding = (self.kernel_size-1)//2
         print(f'pad: {padding}')
         x = ops.transpose(x, (1, 2))  # NHCW
         x = ops.transpose(x, (2, 3))  # NHWC
-        output = ops.conv(x, self.weight, padding=padding)  # NHWC
+        print(f'_x: {x.shape}')
+        output = ops.conv(x, self.weight, padding=padding,
+                          stride=self.stride)  # NHWC
         output = ops.transpose(output, (2, 3))  # NHCW
         output = ops.transpose(output, (1, 2))  # NCHW
         print(f'output shape: {output.shape}')
         if self.bias == None:
             return output
-        
+
         print(f'b shape: {self.bias.shape}')
         print(f'b broadcast shape: {output.shape}')
         b = ops.broadcast_to(self.bias, shape=output.shape)
