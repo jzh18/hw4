@@ -197,8 +197,8 @@ class NDArray:
 
     def numpy(self):
         """ convert to a numpy array """
-        # print(f'shape: {self.shape}')
-        # print(f'stride: {self.strides}')
+        # #print((f'shape: {self.shape}')
+        # #print((f'stride: {self.strides}')
         return self.device.to_numpy(
             self._handle, self.shape, self.strides, self._offset
         )
@@ -251,9 +251,9 @@ class NDArray:
         """
 
         # BEGIN YOUR SOLUTION
-        print(f'old shape: {self.shape}')
-        print(f'new shape: {new_shape}')
-        print(f'old stride: {self.strides}')
+        #print((f'old shape: {self.shape}')
+        #print((f'new shape: {new_shape}')
+        #print((f'old stride: {self.strides}')
         assert prod(self.shape) == prod(new_shape), "Size should be same"
 
         new_shape_list = list(new_shape)
@@ -267,7 +267,7 @@ class NDArray:
                 new_strides.append(s)
             new_strides.reverse()
 
-        print(f'new stride: {new_strides}')
+        #print((f'new stride: {new_strides}')
         assert len(new_strides) == len(new_shape)
         array = self.make(new_shape, strides=new_strides,
                           device=self._device, handle=self._handle)
@@ -329,7 +329,7 @@ class NDArray:
             point to the same memory as the original array.
         """
         # BEGIN YOUR SOLUTION
-        print("start broadcast----------")
+        #print(("start broadcast----------")
         if len(self.shape) == 1 and self.shape[0] == 1:
             new_stride = [0]*len(new_shape)
         else:
@@ -364,16 +364,16 @@ class NDArray:
                 else:
                     broad_axes.append(final_index-i)
 
-            print(f'broad_axes: {broad_axes}')
-        print(f'old shape: {self._shape}')
-        print(f'old stride: {self._strides}')
+            #print((f'broad_axes: {broad_axes}')
+        #print((f'old shape: {self._shape}')
+        #print((f'old stride: {self._strides}')
 
-        print(f'new shape: {new_shape}')
-        print(f'new stride: {new_stride}')
+        #print((f'new shape: {new_shape}')
+        #print((f'new stride: {new_stride}')
         assert len(new_stride) == len(new_shape)
         array = self.make(new_shape, strides=tuple(new_stride),
                           device=self._device, handle=self._handle)
-        print("end broadcast----------")
+        #print(("end broadcast----------")
         return array
         # END YOUR SOLUTION
 
@@ -447,7 +447,7 @@ class NDArray:
         array = NDArray.make(self._shape, strides=self._strides,
                              device=self._device, handle=self._handle)
         for i, s in enumerate(idxs):
-            # print(f'idxs: {idxs}')
+            # #print((f'idxs: {idxs}')
             offset += s.start*array._strides[i]
             stride = s.step
             k = (1.0*s.stop-s.start)/stride
@@ -459,14 +459,14 @@ class NDArray:
             new_shape[i] = dim_size
             new_stride = list(array._strides)
             new_stride[i] = new_stride[i]*stride
-            # print(f'new shape: {new_shape}')
-            # print(f'new stride: {new_stride}')
-            # print(f'offset: {offset}')
+            # #print((f'new shape: {new_shape}')
+            # #print((f'new stride: {new_stride}')
+            # #print((f'offset: {offset}')
             array = NDArray.make(new_shape, strides=tuple(
                 new_stride), device=array._device, handle=array._handle, offset=offset)
             # return NDArray(array)
             # self._init(array)
-            # print(self)
+            # #print((self)
 
         return array
         # END YOUR SOLUTION
@@ -714,8 +714,8 @@ class NDArray:
         offset = 0
         for i in axes:
             offset += axes_offset[i]
-        # print(f'offset: {offset}')
-        # print(f'strides: {new_strides}')
+        # #print((f'offset: {offset}')
+        # #print((f'strides: {new_strides}')
         array = self.make(shape=self.shape, strides=tuple(
             new_strides), offset=offset, device=self.device, handle=self._handle)
         # why need to compact? set stride to positive numbers
