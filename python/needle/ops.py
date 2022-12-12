@@ -249,22 +249,35 @@ class BroadcastTo(TensorOp):
 
     def gradient(self, out_grad, node):
         # BEGIN YOUR SOLUTION
-        # print(f'broadcast_to outgrad: {out_grad}')
+        print(f'broadcast_to outgrad: {out_grad.shape}')
 
         broadcast_shape = list(self.shape)
+
         broadcast_shape.reverse()
+        print(f'broadcast shape reversed: {broadcast_shape}')
         input_shape = list(node.inputs[0].shape)
         input_shape.reverse()
+        print(f'input shape reversed: {input_shape}')
+        if len(input_shape) == 1:
+            shape=input_shape[0]
+            for i, v in enumerate(broadcast_shape):
+                if v != shape:
+                    input_shape.insert(0, 1)
+                else:
+                    break
 
         broad_axes = []
+        
         final_index = len(broadcast_shape)-1
         for i, v in enumerate(broadcast_shape):
+            print(f'i:{i}, v:{v}')
             if i < len(input_shape):
+                print(f'input_shape[i]: {input_shape[i]}')
                 if input_shape[i] == 1 and v > 1:
                     broad_axes.append(final_index-i)
             else:
                 broad_axes.append(final_index-i)
-
+        print(f'sum axes: {broad_axes}')
         grad = out_grad.sum(axes=tuple(broad_axes)).reshape(
             node.inputs[0].shape)
         # print(f'broadcast_to grad: {grad}')
@@ -284,10 +297,23 @@ class Summation(TensorOp):
 
     def compute(self, a):
         # BEGIN YOUR SOLUTION
-        return array_api.summation(a, axis=self.axes)
+        if self.axes is None:
+            self.axes = tuple(range(len(a.shape)))
+        if isinstance(self.axes, int):
+            self.axes = (self.axes,)
+        new_axes = list(self.axes)
+        new_axes.sort()
+        new_axes.reverse()
+        for i in new_axes:
+            a = array_api.summation(a, axis=i)
+        return a
+
         # END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
+        print(f'out grad stride: {out_grad.realize_cached_data().strides}')
+        print(f'out grad shape: {out_grad.realize_cached_data().shape}')
+        print(f'out grad: {out_grad}')
         if self.axes is None:
             grad = out_grad.broadcast_to(node.inputs[0].shape)
             return grad
@@ -712,7 +738,7 @@ class Conv(TensorOp):
 
         # TODO: must need to be compacted
         # looks like if you need underlayer (C++/C) operation, you need to compact the array
-        B=B.compact()
+        B = B.compact()
         out = A@B.reshape((K*K*C_in, C_out))
         out = out.reshape((N, final_h_out, final_w_out, C_out))
 
@@ -732,7 +758,6 @@ class Conv(TensorOp):
         print(f'W shape: {W.shape}')
         _W = flip(W, (0, 1))
         _W = transpose(_W, (2, 3))  # K,K,C_out,C_in
-        
 
         print(f'_W shape: {_W.shape}')
         # N,H,W,C_in
@@ -755,7 +780,6 @@ class Conv(TensorOp):
         W_grad = transpose(W_grad, (1, 2))
 
         print(f'W_grad shape: {W_grad.shape}')
-        
 
         return X_grad, W_grad
         # END YOUR SOLUTION

@@ -251,20 +251,23 @@ class NDArray:
         """
 
         # BEGIN YOUR SOLUTION
-        assert prod(self.shape) == prod(new_shape)
-        # print('------------sum------------')
-        # print(f'old shape: {self.shape}')
-        # print(f'new shape: {new_shape}')
-        # print(f'old stride: {self.strides}')
-        self.compact()
+        print(f'old shape: {self.shape}')
+        print(f'new shape: {new_shape}')
+        print(f'old stride: {self.strides}')
+        assert prod(self.shape) == prod(new_shape), "Size should be same"
+
         new_shape_list = list(new_shape)
         new_shape_list.reverse()
-        new_strides = [self.strides[-1]]
-        for i in range(len(new_shape_list)-1):
-            s = new_strides[-1]*new_shape_list[i]
-            new_strides.append(s)
-        new_strides.reverse()
-        # print(f'new stride: {new_strides}')
+        if len(self.shape) == 0 and len(self.strides) == 0:
+            new_strides = [0]*len(new_shape)
+        else:
+            new_strides = [self.strides[-1]]
+            for i in range(len(new_shape_list)-1):
+                s = new_strides[-1]*new_shape_list[i]
+                new_strides.append(s)
+            new_strides.reverse()
+
+        print(f'new stride: {new_strides}')
         assert len(new_strides) == len(new_shape)
         array = self.make(new_shape, strides=new_strides,
                           device=self._device, handle=self._handle)
@@ -334,28 +337,38 @@ class NDArray:
             broadcast_shape.reverse()
             input_shape = list(self._shape)
             input_shape.reverse()
+            stride = list(self.strides)
+            stride.reverse()
+
+            if len(input_shape) == 1:
+                shape=input_shape[0]
+                for i, v in enumerate(broadcast_shape):
+                    if v != shape:
+                        input_shape.insert(0, 1)
+                        stride.insert(0,0)
+                    else:
+                        break
 
             broad_axes = []
             final_index = len(broadcast_shape)-1
+            new_stride = [0]*len(broadcast_shape)
+
             for i, v in enumerate(broadcast_shape):
                 if i < len(input_shape):
                     if input_shape[i] == 1 and v > 1:
                         broad_axes.append(final_index-i)
+                    if input_shape[i] == v:
+                        new_stride[final_index-i] = stride[i]
+
                 else:
                     broad_axes.append(final_index-i)
-            new_stride = list(self._strides)
 
-            if len(broadcast_shape) != len(input_shape):
-                for i in broad_axes:
-                    new_stride.insert(i, 0)
-            else:
-                for i in broad_axes:
-                    new_stride[i] = 0
-            # print(f'broad_axes: {broad_axes}')
-            # print(f'old shape: {self._shape}')
-            # print(f'old stride: {self._strides}')
-            # print(f'new shape: {new_shape}')
-            # print(f'new stride: {new_stride}')
+            print(f'broad_axes: {broad_axes}')
+            print(f'old shape: {self._shape}')
+            print(f'old stride: {self._strides}')
+
+            print(f'new shape: {new_shape}')
+            print(f'new stride: {new_stride}')
         assert len(new_stride) == len(new_shape)
         array = self.make(new_shape, strides=tuple(new_stride),
                           device=self._device, handle=self._handle)
