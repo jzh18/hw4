@@ -173,6 +173,7 @@ def test_init_kaiming_uniform(device):
 @pytest.mark.parametrize("device", _DEVICES)
 def test_resnet9(device):
     def num_params(model):
+        [print(x.shape) for x in model.parameters()]
         return np.sum([np.prod(x.shape) for x in model.parameters()])
 
     from apps.models import ResNet9

@@ -1,23 +1,53 @@
+import numpy as np
+import math
+import needle.nn as nn
+import needle as ndl
 import sys
 sys.path.append('./python')
-import needle as ndl
-import needle.nn as nn
-import math
-import numpy as np
 np.random.seed(0)
+
+
+class ConvBN(ndl.nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, device=None, dtype="float32"):
+        self.conv2d = nn.Conv(in_channels, out_channels,
+                              kernel_size, stride, device=device, dtype=dtype)
+        self.bn = nn.BatchNorm2d(dim=out_channels, device=device, dtype=dtype)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self.conv2d(x)
+        x = self.bn(x)
+        x = self.relu(x)
+        return x
 
 
 class ResNet9(ndl.nn.Module):
     def __init__(self, device=None, dtype="float32"):
         super().__init__()
         ### BEGIN YOUR SOLUTION ###
-        raise NotImplementedError() ###
-        ### END YOUR SOLUTION
+        self.cb1 = ConvBN(3, 16, 7, 4, device=device, dtype=dtype)
+        self.cb2 = ConvBN(16, 32, 3, 2, device=device, dtype=dtype)
+
+        self.cb3 = ConvBN(32, 32, 3, 1, device=device, dtype=dtype)
+        self.cb4 = ConvBN(32, 32, 3, 1, device=device, dtype=dtype)
+
+        self.cb5 = ConvBN(32, 64, 3, 2, device=device, dtype=dtype)
+        self.cb6 = ConvBN(32, 128, 3, 2, device=device, dtype=dtype)
+
+        self.cb7 = ConvBN(128, 128, 3, 1, device=device, dtype=dtype)
+        self.cb8 = ConvBN(128, 128, 3, 1, device=device, dtype=dtype)
+
+        self.linear1 = nn.Linear(128, 128, device=device, dtype=dtype)
+        self.relu = nn.ReLU()
+        self.linear2 = nn.Linear(128, 10, device=device, dtype=dtype)
+        # END YOUR SOLUTION
 
     def forward(self, x):
-        ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
-        ### END YOUR SOLUTION
+        print(f'x shape: {x.shape}')
+        # BEGIN YOUR SOLUTION
+        x = self.cb1(x)
+        x = self.cb2(x)
+        # END YOUR SOLUTION
 
 
 class LanguageModel(nn.Module):
@@ -34,9 +64,9 @@ class LanguageModel(nn.Module):
         num_layers: Number of layers in RNN or LSTM
         """
         super(LanguageModel, self).__init__()
-        ### BEGIN YOUR SOLUTION
+        # BEGIN YOUR SOLUTION
         raise NotImplementedError()
-        ### END YOUR SOLUTION
+        # END YOUR SOLUTION
 
     def forward(self, x, h=None):
         """
@@ -51,15 +81,17 @@ class LanguageModel(nn.Module):
         h of shape (num_layers, bs, hidden_size) if using RNN,
             else h is tuple of (h0, c0), each of shape (num_layers, bs, hidden_size)
         """
-        ### BEGIN YOUR SOLUTION
+        # BEGIN YOUR SOLUTION
         raise NotImplementedError()
-        ### END YOUR SOLUTION
+        # END YOUR SOLUTION
 
 
 if __name__ == "__main__":
     model = ResNet9()
     x = ndl.ops.randu((1, 32, 32, 3), requires_grad=True)
     model(x)
-    cifar10_train_dataset = ndl.data.CIFAR10Dataset("data/cifar-10-batches-py", train=True)
-    train_loader = ndl.data.DataLoader(cifar10_train_dataset, 128, ndl.cpu(), dtype="float32")
+    cifar10_train_dataset = ndl.data.CIFAR10Dataset(
+        "data/cifar-10-batches-py", train=True)
+    train_loader = ndl.data.DataLoader(
+        cifar10_train_dataset, 128, ndl.cpu(), dtype="float32")
     print(dataset[1][0].shape)

@@ -156,7 +156,7 @@ class Sequential(Module):
         # BEGIN YOUR SOLUTION
         for i, m in enumerate(self.modules):
             x = m(x)
-            ##print((f'x{i}: {x}')
+            # print((f'x{i}: {x}')
         return x
         # END YOUR SOLUTION
 
@@ -324,12 +324,12 @@ class Conv(Module):
         self.kernel_size = kernel_size
         self.stride = stride
         self.bias = None
-        #print((f'out channel: {out_channels}')
+        # print((f'out channel: {out_channels}')
         # BEGIN YOUR SOLUTION
         fan_in = self.kernel_size*self.kernel_size*self.in_channels
         fan_out = self.kernel_size*self.kernel_size*self.out_channels
-        self.weight = init.kaiming_uniform(fan_in, fan_out, shape=(
-            kernel_size, kernel_size, in_channels, out_channels), device=device, dtype=dtype, requires_grad=True)
+        self.weight = Parameter(init.kaiming_uniform(fan_in, fan_out, shape=(
+            kernel_size, kernel_size, in_channels, out_channels), device=device, dtype=dtype, requires_grad=True))
         if bias == True:
             # ± 1.0/(in_channels * kernel_size**2)**0.5
             bound = 1.0/(in_channels*kernel_size**2)**0.5
@@ -340,26 +340,27 @@ class Conv(Module):
     def forward(self, x: Tensor) -> Tensor:
         # BEGIN YOUR SOLUTION
         N, C, H, W = x.shape
-        #print((f'original shape: {x.shape}')
-        #print((f'kernel shape: {self.weight.shape}')
-        #print((f'stride: {self.stride}')
+        # print((f'original shape: {x.shape}')
+        # print((f'kernel shape: {self.weight.shape}')
+        # print((f'stride: {self.stride}')
 
         padding = (self.kernel_size-1)//2
-        #print((f'pad: {padding}')
+        # print((f'pad: {padding}')
         x = ops.transpose(x, (1, 2))  # NHCW
         x = ops.transpose(x, (2, 3))  # NHWC
-        #print((f'_x: {x.shape}')
+        # print((f'_x: {x.shape}')
         output = ops.conv(x, self.weight, padding=padding,
                           stride=self.stride)  # NHWC
         output = ops.transpose(output, (2, 3))  # NHCW
         output = ops.transpose(output, (1, 2))  # NCHW
-        #print((f'output shape: {output.shape}')
+        # print((f'output shape: {output.shape}')
         if self.bias == None:
             return output
 
-        #print((f'b shape: {self.bias.shape}')
-        #print((f'b broadcast shape: {output.shape}')
-        b = ops.broadcast_to(self.bias.reshape((self.out_channels, 1, 1)), shape=output.shape)
+        # print((f'b shape: {self.bias.shape}')
+        # print((f'b broadcast shape: {output.shape}')
+        b = ops.broadcast_to(self.bias.reshape(
+            (self.out_channels, 1, 1)), shape=output.shape)
         output = output+b
         return output
 
