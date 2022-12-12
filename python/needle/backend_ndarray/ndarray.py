@@ -329,6 +329,7 @@ class NDArray:
             point to the same memory as the original array.
         """
         # BEGIN YOUR SOLUTION
+        print("start broadcast----------")
         if len(self.shape) == 1 and self.shape[0] == 1:
             new_stride = [0]*len(new_shape)
         else:
@@ -364,15 +365,15 @@ class NDArray:
                     broad_axes.append(final_index-i)
 
             print(f'broad_axes: {broad_axes}')
-            print(f'old shape: {self._shape}')
-            print(f'old stride: {self._strides}')
+        print(f'old shape: {self._shape}')
+        print(f'old stride: {self._strides}')
 
-            print(f'new shape: {new_shape}')
-            print(f'new stride: {new_stride}')
+        print(f'new shape: {new_shape}')
+        print(f'new stride: {new_stride}')
         assert len(new_stride) == len(new_shape)
         array = self.make(new_shape, strides=tuple(new_stride),
                           device=self._device, handle=self._handle)
-
+        print("end broadcast----------")
         return array
         # END YOUR SOLUTION
 
