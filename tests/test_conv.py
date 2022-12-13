@@ -379,6 +379,7 @@ def test_nn_conv_backward(s, cin, cout, k, stride, device):
     import torch
     f = ndl.nn.Conv(cin, cout, k, stride=stride, device=device)
     x = ndl.init.rand(1, cin, s, s, device=device, requires_grad=True)
+    print(f'x shape: {x.shape}')
 
     g = torch.nn.Conv2d(cin, cout, k, stride=stride, padding=k//2)
     g.weight.data = torch.tensor(f.weight.cached_data.numpy().transpose(3, 2, 0, 1))
@@ -387,12 +388,22 @@ def test_nn_conv_backward(s, cin, cout, k, stride, device):
     z.requires_grad = True
 
     res1 = f(x)
-    y1 = res1.sum()
+    #y1 = res1.sum()
+    y1=res1
+    print(f'output shape: {y1.shape}')
 
-    y2 = g(z).sum()
+    #y2 = g(z).sum()
+    y2 = g(z)
 
-    y1.backward()
-    y2.backward()
+    _out_grad=np.arange(1*cout*s*s).reshape((1,cout,s,s))*1.0
+    ndl_grad=ndl.Tensor(_out_grad,device=device)
+    torch_grad=torch.Tensor(+_out_grad)
+
+    y1.backward(ndl_grad)
+    y2.backward(torch_grad)
+
+    print(f'my weight grad: {f.weight.grad.cached_data.numpy()}')
+    print(f'expected weight grad: {g.weight.grad.data.numpy()}')
 
     assert np.linalg.norm(g.weight.grad.data.numpy() - f.weight.grad.cached_data.numpy().transpose(3, 2, 0, 1)) < 1e-3, "weight gradients match"
     assert np.linalg.norm(g.bias.grad.data.numpy() - f.bias.grad.cached_data.numpy()) < 1e-3, "bias gradients match"
@@ -426,29 +437,55 @@ op_conv_shapes = [
 def test_op_conv(Z_shape, W_shape, stride, padding, backward, device):
     np.random.seed(0)
     import torch
-    _Z = np.random.randn(*Z_shape)*5
-    _Z = _Z.astype(np.float32)
-    _W = np.random.randn(*W_shape)*5
-    _W = _W.astype(np.float32)
+    # _Z = np.random.randn(*Z_shape)*5
+    # _Z = _Z.astype(np.float32)
+    # _W = np.random.randn(*W_shape)*5
+    # _W = _W.astype(np.float32)
+
+    _Z=np.arange(16).reshape((1,4,4,1))*1.0
+    _W=np.ones((3,3,1,1))*1.0
+    stride=2
+    padding=1
+
+    print(f'_Z shape: {_Z.shape}')
+    print(f'_W shape: {_W.shape}')
+
     Z = ndl.Tensor(_Z, device=device)
     W = ndl.Tensor(_W, device=device)
     y = ndl.conv(Z, W, padding=padding, stride=stride)
-    y2 = y.sum()
+    #y2 = y.sum()
+    y2=y
+    print(f'my shape: {y2.shape}')
+
+    shape=y.shape
+    size=1
+    for i in shape:
+        size*=i
+
+    _out_grad=np.arange(size).reshape(shape)*1.0
+    ndl_grad=ndl.Tensor(_out_grad,device=device)
+    print(f'grad shape: {_out_grad.shape}')
+
     if backward:
-        y2.backward()
+        y2.backward(ndl_grad)
     Ztch = torch.Tensor(_Z).float()
     Ztch.requires_grad=True
     Wtch = torch.Tensor(_W).float()
     Wtch.requires_grad=True
-    out = torch.nn.functional.conv2d(Ztch.permute(0, 3, 1, 2), Wtch.permute(3, 2, 0, 1), padding=padding, stride=stride)
-    out2 = out.sum()
+    out = torch.nn.functional.conv2d(Ztch.permute(0, 3, 1, 2), Wtch.permute(3, 2, 0, 1), padding=padding, stride=stride).permute(0,2,3,1)
+    #out2 = out.sum()
+    out2=out
+    print(f'out2 shape: {out2.shape}')
     if backward:
-        out2.backward()
+        torch_grad=torch.Tensor(_out_grad)
+        out2.backward(torch_grad)
     if backward:
         err1 = np.linalg.norm(Ztch.grad.numpy() - Z.grad.numpy())
         err2 = np.linalg.norm(Wtch.grad.numpy() - W.grad.numpy())
     err3 = np.linalg.norm(out2.detach().numpy() - y2.numpy())
     if backward:
+        print(f'my weight grad: {W.grad.numpy()}')
+        print(f'expected weight grad: {Wtch.grad.numpy()}')
         assert err1 < 1e-2, "input grads match"
         assert err2 < 1e-2, "weight grads match"
     assert err3 < 1e-1, "outputs match %s, %s" % (y2, out2)
@@ -474,7 +511,7 @@ def test_train_cifar10(device):
     assert np.linalg.norm(np.array(list(out)) - np.array([0.09375, 3.5892258])) < 1e-2
 
 
-def one_iter_of_cifar10_training(dataloader, model, niter=1, loss_fn=ndl.nn.SoftmaxLoss(), opt=None, device=None):
+def one_iter_of_cifar10_training(dataloader, model, niter=10, loss_fn=ndl.nn.SoftmaxLoss(), opt=None, device=None):
     np.random.seed(4)
     model.train()
     correct, total_loss = 0, 0

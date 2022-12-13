@@ -9,6 +9,7 @@ np.random.seed(0)
 
 class ConvBN(ndl.nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride, device=None, dtype="float32"):
+        super().__init__()
         self.conv2d = nn.Conv(in_channels, out_channels,
                               kernel_size, stride, device=device, dtype=dtype)
         self.bn = nn.BatchNorm2d(dim=out_channels, device=device, dtype=dtype)
