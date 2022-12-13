@@ -458,7 +458,7 @@ class LogSumExp(TensorOp):
             for i in range(len(Z.shape)):
                 if i not in self.axes:
                     reshape_size[i] = Z.shape[i]
-            resize_max_z = max_z.reshape(reshape_size)
+            resize_max_z = max_z.compact().reshape(reshape_size)
             new_z = Z-array_api.broadcast_to(resize_max_z, Z.shape)
         else:
             new_z = Z-array_api.broadcast_to(max_z, Z.shape)
@@ -589,7 +589,7 @@ class Split(TensorTupleOp):
         res = []
         for i in range(A.shape[self.axis]):
             idxs[self.axis] = i
-            ele = A[tuple(idxs)].reshape(tuple(res_shape))
+            ele = A[tuple(idxs)].compact().reshape(tuple(res_shape))
             res.append(ele)
         return tuple(res)
         # END YOUR SOLUTION

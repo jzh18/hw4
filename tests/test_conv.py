@@ -173,7 +173,6 @@ def test_init_kaiming_uniform(device):
 @pytest.mark.parametrize("device", _DEVICES)
 def test_resnet9(device):
     def num_params(model):
-        [print(x.shape) for x in model.parameters()]
         return np.sum([np.prod(x.shape) for x in model.parameters()])
 
     from apps.models import ResNet9
@@ -347,18 +346,13 @@ conv_forward_params = [
 def test_nn_conv_forward(s, cin, cout, k, stride, device):
     np.random.seed(0)
     import torch
-    f = ndl.nn.Conv(cin, cout, k, stride=stride, device=device,bias=True)
+    f = ndl.nn.Conv(cin, cout, k, stride=stride, device=device)
     x = ndl.init.rand(10, cin, s, s, device=device)
 
-    g = torch.nn.Conv2d(cin, cout, k, stride=stride, padding=k//2,bias=True)
+    g = torch.nn.Conv2d(cin, cout, k, stride=stride, padding=k//2)
     g.weight.data = torch.tensor(f.weight.cached_data.numpy().transpose(3, 2, 0, 1))
     g.bias.data = torch.tensor(f.bias.cached_data.numpy())
     z = torch.tensor(x.cached_data.numpy())
-
-    my=f(x).cached_data.numpy()
-    expected=g(z).data.numpy()
-    print(f'my: {my.shape}')
-    print(f'expected: {expected.shape}')
 
     assert np.linalg.norm(f(x).cached_data.numpy() - g(z).data.numpy()) < 1e-3
 
@@ -486,7 +480,6 @@ def one_iter_of_cifar10_training(dataloader, model, niter=1, loss_fn=ndl.nn.Soft
         out = model(X)
         correct += np.sum(np.argmax(out.numpy(), axis=1) == y.numpy())
         loss = loss_fn(out, y)
-        print(loss)
         total_loss += loss.data.numpy() * y.shape[0]
         loss.backward()
         opt.step()
@@ -679,7 +672,6 @@ def submit_resnet9():
     np.random.seed(1)
     model = ResNet9(device=device, dtype="float32")
     out = one_iter_of_cifar10_training(dataloader, model, niter=2, opt=ndl.optim.Adam(model.parameters(), lr=0.01, weight_decay=0.0001), device=device)
-    print(out)
     MugradeSubmit(ndl.Tensor(list(out)))
 
 

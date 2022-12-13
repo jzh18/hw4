@@ -4,6 +4,60 @@ import os
 import pickle
 from typing import Iterator, Optional, List, Sized, Union, Iterable, Any
 from needle import backend_ndarray as nd
+import gzip
+def parse_mnist(image_filesname, label_filename):
+    """ Read an images and labels file in MNIST format.  See this page:
+    http://yann.lecun.com/exdb/mnist/ for a description of the file format.
+
+    Args:
+        image_filename (str): name of gzipped images file in MNIST format
+        label_filename (str): name of gzipped labels file in MNIST format
+
+    Returns:
+        Tuple (X,y):
+            X (numpy.ndarray[np.float32]): 2D numpy array containing the loaded
+                data.  The dimensionality of the data should be
+                (num_examples x input_dim) where 'input_dim' is the full
+                dimension of the data, e.g., since MNIST images are 28x28, it
+                will be 784.  Values should be of type np.float32, and the data
+                should be normalized to have a minimum value of 0.0 and a
+                maximum value of 1.0.
+
+            y (numpy.ndarray[dypte=np.int8]): 1D numpy array containing the
+                labels of the examples.  Values should be of type np.int8 and
+                for MNIST will contain the values 0-9.
+    """
+    # BEGIN YOUR SOLUTION
+    byte_order = 'big'
+    X = []
+    with gzip.open(image_filesname) as f:
+        magic_num = int.from_bytes(f.read(4), byteorder=byte_order)
+        if magic_num != 2051:
+            raise Exception('decode error!')
+        num_of_imgs = int.from_bytes(f.read(4), byteorder=byte_order)
+        num_of_rows = int.from_bytes(f.read(4), byteorder=byte_order)
+        num_of_cols = int.from_bytes(f.read(4), byteorder=byte_order)
+        for i in range(num_of_imgs):
+            img_one_dim = np.frombuffer(
+                f.read(num_of_rows * num_of_cols), dtype=np.uint8).astype(np.float32)
+            X.append(img_one_dim)
+    X = np.array(X)
+    min = np.min(X)
+    max = np.max(X)
+    X = (X - min) / (max - min)
+    y = []
+    with gzip.open(label_filename) as f:
+        magic_num = int.from_bytes(f.read(4), byteorder=byte_order)
+        if magic_num != 2049:
+            raise Exception('decode error!')
+        num_of_imgs = int.from_bytes(f.read(4), byteorder=byte_order)
+        for i in range(num_of_imgs):
+            label = np.frombuffer(f.read(1), dtype=np.uint8)
+            y.append(label)
+
+    return X, np.array(y).squeeze()
+
+    # END YOUR SOLUTION
 
 
 class Transform:
@@ -26,7 +80,10 @@ class RandomFlipHorizontal(Transform):
         """
         flip_img = np.random.rand() < self.p
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        if flip_img:
+            return np.fliplr(img)
+        else:
+            return img
         # END YOUR SOLUTION
 
 
@@ -94,8 +151,12 @@ class DataLoader:
         dataset: Dataset,
         batch_size: Optional[int] = 1,
         shuffle: bool = False,
+        device=None,
+        dtype="float32"
     ):
-
+    # for cuda test
+        self.device=device
+        self.dtype=dtype
         self.dataset = dataset
         self.shuffle = shuffle
         self.batch_size = batch_size
@@ -110,7 +171,6 @@ class DataLoader:
             np.random.shuffle(all_indices)
             self.ordering = np.array_split(all_indices, range(
                 self.batch_size, len(self.dataset), self.batch_size))
-            self.ordering
         self.n = len(self.ordering)
         self.i = 0
         # END YOUR SOLUTION
@@ -133,7 +193,7 @@ class DataLoader:
         
         results=[]
         for v in all_res:
-            t=Tensor(v)
+            t=Tensor(v,device=self.device,dtype=self.dtype)
             results.append(t)
         return results
                 
@@ -147,17 +207,23 @@ class MNISTDataset(Dataset):
         transforms: Optional[List] = None,
     ):
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        super().__init__(transforms)
+        X, y = parse_mnist(image_filename, label_filename)
+        size = len(X)
+        self.X = X.reshape(size, 28, 28, 1)
+        self.y = y
         # END YOUR SOLUTION
 
     def __getitem__(self, index) -> object:
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        x, y = self.X[index], self.y[index]
+        x = self.apply_transforms(x)
+        return x, y
         # END YOUR SOLUTION
 
     def __len__(self) -> int:
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return len(self.X)
         # END YOUR SOLUTION
 
 
@@ -179,6 +245,7 @@ class CIFAR10Dataset(Dataset):
         y - numpy array of labels
         """
         # BEGIN YOUR SOLUTION
+        super().__init__(transforms)
         if train:
             files = [f'data_batch_{x}' for x in range(1, 6)]
         else:
@@ -191,7 +258,7 @@ class CIFAR10Dataset(Dataset):
             imgs.append(dict[b'data'])
             labels.append(dict[b'labels'])
         self.X = np.concatenate(imgs, axis=0)/255.0
-        self.y = np.concatenate(labels, axis=0)/255.0
+        self.y = np.concatenate(labels, axis=0)
         # END YOUR SOLUTION
 
     def _unpickle(self, file):

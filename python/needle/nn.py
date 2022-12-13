@@ -337,7 +337,7 @@ class Conv(Module):
             kernel_size, kernel_size, in_channels, out_channels), device=device, dtype=dtype, requires_grad=True))
         if bias == True:
             # ± 1.0/(in_channels * kernel_size**2)**0.5
-            bound = 1.0/(in_channels*kernel_size**2)**0.5
+            bound = 1.0/((in_channels*kernel_size**2)**0.5)
             self.bias = Parameter(init.rand(
                 self.out_channels, low=-bound, high=bound, device=device, dtype=dtype, requires_grad=True))
         # END YOUR SOLUTION
