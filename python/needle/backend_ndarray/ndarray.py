@@ -251,9 +251,10 @@ class NDArray:
         """
 
         # BEGIN YOUR SOLUTION
-        #print((f'old shape: {self.shape}')
-        #print((f'new shape: {new_shape}')
-        #print((f'old stride: {self.strides}')
+        # print(f'old shape: {self.shape}')
+        # print(f'new shape: {new_shape}')
+        # print(f'old stride: {self.strides}')
+        assert self.is_compact(), "Array should be compacted!"
         assert prod(self.shape) == prod(new_shape), "Size should be same"
 
         new_shape_list = list(new_shape)
@@ -267,12 +268,10 @@ class NDArray:
                 new_strides.append(s)
             new_strides.reverse()
 
-        #print((f'new stride: {new_strides}')
+        # print(f'new stride: {new_strides}')
         assert len(new_strides) == len(new_shape)
-        array = self.make(new_shape, strides=new_strides,
+        array = self.make(new_shape, strides=tuple(new_strides),
                           device=self._device, handle=self._handle)
-        #raise NotImplementedError()
-        #array=self.make(new_shape, device=self._device,handle=self._handle)
         return array
         # END YOUR SOLUTION
 

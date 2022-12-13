@@ -486,6 +486,7 @@ def one_iter_of_cifar10_training(dataloader, model, niter=1, loss_fn=ndl.nn.Soft
         out = model(X)
         correct += np.sum(np.argmax(out.numpy(), axis=1) == y.numpy())
         loss = loss_fn(out, y)
+        print(loss)
         total_loss += loss.data.numpy() * y.shape[0]
         loss.backward()
         opt.step()
@@ -678,6 +679,7 @@ def submit_resnet9():
     np.random.seed(1)
     model = ResNet9(device=device, dtype="float32")
     out = one_iter_of_cifar10_training(dataloader, model, niter=2, opt=ndl.optim.Adam(model.parameters(), lr=0.01, weight_decay=0.0001), device=device)
+    print(out)
     MugradeSubmit(ndl.Tensor(list(out)))
 
 

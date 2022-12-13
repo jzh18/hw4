@@ -384,14 +384,12 @@ def compute_gradient_of_variables(output_tensor, out_grad):
 
     # BEGIN YOUR SOLUTION
     for i in reverse_topo_order:
-
+        # print('---------------------')
+        # print(f'i shape: {i.shape}')
         vi = sum_node_list(node_to_output_grads_list[i])
         i.grad = vi
         if i.op is None:
             continue
-        # print(f'---------------------------')
-        # print(f'grad shape: {vi.realize_cached_data().shape}')
-        # print(f'grad strides: {vi.realize_cached_data().strides}')
         grads = i.op.gradient_as_tuple(vi, i)
         for j in range(len(i.inputs)):
             k = i.inputs[j]

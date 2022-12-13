@@ -166,14 +166,14 @@ class SoftmaxLoss(Module):
         # BEGIN YOUR SOLUTION
 
         num_classes = logits.shape[1]
-        onehot = init.one_hot(num_classes, y)
+        onehot = init.one_hot(num_classes, y, device=y.device, dtype=y.dtype)
 
         z_y = ops.multiply(onehot, logits)
         exps_up = ops.summation(z_y, axes=(1))
 
         exps_down = ops.logsumexp(logits, axes=(1,))
         res = ops.summation(
-            exps_down-exps_up) / Tensor(logits.shape[0], dtype="float32")
+            exps_down-exps_up) / logits.shape[0]
 
         return res
         # END YOUR SOLUTION
@@ -182,6 +182,8 @@ class SoftmaxLoss(Module):
 class BatchNorm1d(Module):
     def __init__(self, dim, eps=1e-5, momentum=0.1, device=None, dtype="float32"):
         super().__init__()
+        self.device = device
+        self.dtype = dtype
         self.dim = dim
         self.eps = eps
         self.momentum = momentum
@@ -190,16 +192,19 @@ class BatchNorm1d(Module):
             init.ones(dim, device=device, dtype=dtype, requires_grad=True))
         self.bias = Parameter(init.zeros(
             dim, device=device, dtype=dtype, requires_grad=True))
-        self.running_mean = init.zeros(dim)
-        self.running_var = init.ones(dim)
+        self.running_mean = init.zeros(dim, device=device, dtype=dtype,)
+        self.running_var = init.ones(dim, device=device, dtype=dtype,)
         # END YOUR SOLUTION
 
     def forward(self, x: Tensor) -> Tensor:
         # BEGIN YOUR SOLUTION
         batch_size, in_features = x.shape
 
-        new_running_mean = ops.summation(
-            x, axes=(0,))/Tensor(batch_size, dtype="float32")
+        sum = ops.summation(x, axes=(0,))
+        new_running_mean = sum / batch_size
+        # print(f'sum: {sum}')
+        # print(f'batch_size: {batch_size}')
+        # print(f'running mean: {new_running_mean}')
         if self.training:
             self.running_mean.data = ((1-self.momentum)*self.running_mean +
                                       self.momentum*new_running_mean).data
@@ -340,25 +345,25 @@ class Conv(Module):
     def forward(self, x: Tensor) -> Tensor:
         # BEGIN YOUR SOLUTION
         N, C, H, W = x.shape
-        # print((f'original shape: {x.shape}')
-        # print((f'kernel shape: {self.weight.shape}')
-        # print((f'stride: {self.stride}')
+        # print(f'original shape: {x.shape}')
+        # print(f'kernel shape: {self.weight.shape}')
+        # print(f'stride: {self.stride}')
 
         padding = (self.kernel_size-1)//2
-        # print((f'pad: {padding}')
+        # print(f'pad: {padding}')
         x = ops.transpose(x, (1, 2))  # NHCW
         x = ops.transpose(x, (2, 3))  # NHWC
-        # print((f'_x: {x.shape}')
+        # print(f'_x: {x.shape}')
         output = ops.conv(x, self.weight, padding=padding,
                           stride=self.stride)  # NHWC
         output = ops.transpose(output, (2, 3))  # NHCW
         output = ops.transpose(output, (1, 2))  # NCHW
-        # print((f'output shape: {output.shape}')
+        # print(f'output shape: {output.shape}')
         if self.bias == None:
             return output
 
-        # print((f'b shape: {self.bias.shape}')
-        # print((f'b broadcast shape: {output.shape}')
+        # print(f'b shape: {self.bias.shape}')
+        # print(f'b broadcast shape: {output.shape}')
         b = ops.broadcast_to(self.bias.reshape(
             (self.out_channels, 1, 1)), shape=output.shape)
         output = output+b

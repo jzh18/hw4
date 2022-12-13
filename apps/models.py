@@ -32,7 +32,7 @@ class ResNet9(ndl.nn.Module):
         self.cb4 = ConvBN(32, 32, 3, 1, device=device, dtype=dtype)
 
         self.cb5 = ConvBN(32, 64, 3, 2, device=device, dtype=dtype)
-        self.cb6 = ConvBN(32, 128, 3, 2, device=device, dtype=dtype)
+        self.cb6 = ConvBN(64, 128, 3, 2, device=device, dtype=dtype)
 
         self.cb7 = ConvBN(128, 128, 3, 1, device=device, dtype=dtype)
         self.cb8 = ConvBN(128, 128, 3, 1, device=device, dtype=dtype)
@@ -43,10 +43,34 @@ class ResNet9(ndl.nn.Module):
         # END YOUR SOLUTION
 
     def forward(self, x):
-        print(f'x shape: {x.shape}')
+        # print(f'x shape: {x.shape}')  # (2, 3, 32, 32)
         # BEGIN YOUR SOLUTION
-        x = self.cb1(x)
-        x = self.cb2(x)
+        x1 = self.cb1(x)  # (2, 16, 8, 8)
+        x2 = self.cb2(x1)  # (2, 32, 4, 4)
+        #print(f'x2 shape: {x2.shape}')
+
+        x3 = self.cb3(x2)  # (2, 32, 4, 4)
+        x4 = self.cb4(x3)  # (2, 32, 4, 4)
+        x4 = x4+x2  # (2, 32, 4, 4)
+        #print(f'x4 shape: {x4.shape}')
+
+        x5 = self.cb5(x4)  # (2, 64, 2, 2)
+        #print(f'x5 shape: {x5.shape}')
+        x6 = self.cb6(x5)  # (2, 128, 1, 1)
+        #print(f'x6 shape: {x6.shape}')
+
+        x7 = self.cb7(x6)  # (2,128,1,1)
+        x8 = self.cb8(x7)  # (2,128,1,1)
+        #print(f'x8 shape: {x8.shape}')
+        x8 = x8+x6
+
+        N, C, H, W = x8.shape
+        x8 = x8.reshape((N, C*H*W))  # (2,128)
+        x8 = self.linear1(x8)  # (2,128)
+        x8 = self.relu(x8)
+        x8 = self.linear2(x8)  # (2,10)
+
+        return x8
         # END YOUR SOLUTION
 
 

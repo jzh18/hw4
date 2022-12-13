@@ -140,7 +140,7 @@ class PowerScalar(TensorOp):
 
     def gradient(self, out_grad, node):
         # BEGIN YOUR SOLUTION
-        return (node.inputs[0]**Tensor(self.scalar-1)) * out_grad*Tensor(self.scalar)
+        return (node.inputs[0]**(self.scalar-1)) * out_grad*(self.scalar)
         # END YOUR SOLUTION
 
 
@@ -160,10 +160,12 @@ class EWiseDiv(TensorOp):
         # BEGIN YOUR SOLUTION
         left, right = node.inputs
 
-        tmp1 = Tensor(1, dtype="float32") / right
-        tmp2 = Tensor(-1, dtype="float32")*left/(right*right)
+        # tmp1 = 1 / right
+        # tmp2 = -1*left/(right*right)
+        # print(f'tmp1 shape: {tmp1.shape}')
+        # print(f'tmp2 shape: {tmp2.shape}')
 
-        return out_grad*tmp1, out_grad*tmp2
+        return out_grad/right, -1*out_grad*left/(right*right)
         # END YOUR SOLUTION
 
 
@@ -182,7 +184,7 @@ class DivScalar(TensorOp):
 
     def gradient(self, out_grad, node):
         # BEGIN YOUR SOLUTION
-        res = out_grad*Tensor(1)/self.scalar
+        res = out_grad*1/self.scalar
         # #print((f'div scalar: {res}')
         return res
         # END YOUR SOLUTION
@@ -226,7 +228,7 @@ class Reshape(TensorOp):
 
     def compute(self, a):
         # BEGIN YOUR SOLUTION
-        return array_api.reshape(a, self.shape)
+        return array_api.reshape(a.compact(), self.shape)
         # END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
@@ -249,17 +251,17 @@ class BroadcastTo(TensorOp):
 
     def gradient(self, out_grad, node):
         # BEGIN YOUR SOLUTION
-        #print((f'broadcast_to outgrad: {out_grad.shape}')
+        # print((f'broadcast_to outgrad: {out_grad.shape}')
 
         broadcast_shape = list(self.shape)
 
         broadcast_shape.reverse()
-        #print((f'broadcast shape reversed: {broadcast_shape}')
+        # print((f'broadcast shape reversed: {broadcast_shape}')
         input_shape = list(node.inputs[0].shape)
         input_shape.reverse()
-        #print((f'input shape reversed: {input_shape}')
+        # print((f'input shape reversed: {input_shape}')
         if len(input_shape) == 1:
-            shape=input_shape[0]
+            shape = input_shape[0]
             for i, v in enumerate(broadcast_shape):
                 if v != shape:
                     input_shape.insert(0, 1)
@@ -267,17 +269,17 @@ class BroadcastTo(TensorOp):
                     break
 
         broad_axes = []
-        
+
         final_index = len(broadcast_shape)-1
         for i, v in enumerate(broadcast_shape):
-            #print((f'i:{i}, v:{v}')
+            # print((f'i:{i}, v:{v}')
             if i < len(input_shape):
-                #print((f'input_shape[i]: {input_shape[i]}')
+                # print((f'input_shape[i]: {input_shape[i]}')
                 if input_shape[i] == 1 and v > 1:
                     broad_axes.append(final_index-i)
             else:
                 broad_axes.append(final_index-i)
-        #print((f'sum axes: {broad_axes}')
+        # print((f'sum axes: {broad_axes}')
         grad = out_grad.sum(axes=tuple(broad_axes)).reshape(
             node.inputs[0].shape)
         # #print((f'broadcast_to grad: {grad}')
@@ -311,9 +313,9 @@ class Summation(TensorOp):
         # END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
-        #print((f'out grad stride: {out_grad.realize_cached_data().strides}')
-        #print((f'out grad shape: {out_grad.realize_cached_data().shape}')
-        #print((f'out grad: {out_grad}')
+        # print((f'out grad stride: {out_grad.realize_cached_data().strides}')
+        # print((f'out grad shape: {out_grad.realize_cached_data().shape}')
+        # print((f'out grad: {out_grad}')
         if self.axes is None:
             grad = out_grad.broadcast_to(node.inputs[0].shape)
             return grad
@@ -383,7 +385,7 @@ class Negate(TensorOp):
 
     def gradient(self, out_grad, node):
         # BEGIN YOUR SOLUTION
-        return out_grad*Tensor(-1)
+        return out_grad*-1
         # END YOUR SOLUTION
 
 
@@ -399,7 +401,7 @@ class Log(TensorOp):
 
     def gradient(self, out_grad, node):
         # BEGIN YOUR SOLUTION
-        return out_grad*Tensor(1)/node.inputs[0]
+        return out_grad*1/node.inputs[0]
         # END YOUR SOLUTION
 
 
@@ -433,7 +435,7 @@ class ReLU(TensorOp):
     def gradient(self, out_grad, node):
         # BEGIN YOUR SOLUTION
         data = node.inputs[0].realize_cached_data()
-        return out_grad*Tensor(data > 0)
+        return out_grad*Tensor(data > 0, device=out_grad.device, dtype=out_grad.dtype)
 
 
 def relu(a):
@@ -495,7 +497,7 @@ class LogSumExp(TensorOp):
             out_grad = resize_out_grad.broadcast_to(data.shape)
 
         res = Tensor(
-            out_grad.realize_cached_data() * exps/exps_down)
+            out_grad.realize_cached_data() * exps/exps_down, device=out_grad.device, dtype=out_grad.dtype)
 
         # #print((f'logsumexp grad: {res}')
         return res
@@ -701,6 +703,7 @@ class Conv(TensorOp):
         padded_A = A.pad(((0, 0), (self.padding, self.padding),
                          (self.padding, self.padding), (0, 0)))
         N, H, W, C_in = padded_A.shape
+        # print(f'C_in in conv: {C_in}')
 
         K, _, _, C_out = B.shape
         Ns, Hs, Ws, Cs = padded_A.strides
@@ -739,7 +742,11 @@ class Conv(TensorOp):
         # TODO: must need to be compacted
         # looks like if you need underlayer (C++/C) operation, you need to compact the array
         B = B.compact()
+        # print(f'B shape in conv: {B.shape}')
+        # print(f'B new shape in conv: {(K*K*C_in, C_out)}')
+        # print(f'K,K,C_in in conv: {K},{K},{C_in}')
         out = A@B.reshape((K*K*C_in, C_out))
+        out = out.compact()
         out = out.reshape((N, final_h_out, final_w_out, C_out))
 
         return out
@@ -750,36 +757,36 @@ class Conv(TensorOp):
         # out_grad: N,H-K+1,W-K+1,C_out
         # padding: N,H-K+2*pad+1,W-K+2*pad+1,C_out
         # stride: N,(H-K+2*pad)/s+1,(W-K+2*pad)/s+1,C_out
-        #print((f'out_grad shape: {out_grad.shape}')
-        #print((f'stride: {self.stride}')
+        # print((f'out_grad shape: {out_grad.shape}')
+        # print((f'stride: {self.stride}')
         _out_grad = dilate(out_grad, (1, 2), self.stride-1)
-        #print((f'_out_grad shape: {_out_grad.shape}')
+        # print((f'_out_grad shape: {_out_grad.shape}')
         X, W = node.inputs
-        #print((f'W shape: {W.shape}')
+        # print((f'W shape: {W.shape}')
         _W = flip(W, (0, 1))
         _W = transpose(_W, (2, 3))  # K,K,C_out,C_in
 
-        #print((f'_W shape: {_W.shape}')
+        # print((f'_W shape: {_W.shape}')
         # N,H,W,C_in
         # what if padding is very large?
         X_grad = conv(_out_grad, _W, padding=_W.shape[0]-1-self.padding)
-        #print((f'X_grad shape: {X_grad.shape}')
+        # print((f'X_grad shape: {X_grad.shape}')
 
-        #print((f'X_shape: {X.shape}')
+        # print((f'X_shape: {X.shape}')
         _X = transpose(X, (0, 3))  # C_in,H,W,N
-        #print((f'_X shape: {_X.shape}')
+        # print((f'_X shape: {_X.shape}')
         # looks like we assume H=W, so that we can think _out_grad as a kernel
         # H-K+1,W-K+1,N,C_out; padding:N,H-K+1+2*pad,W-K+1+2*pad,C_out; stride:  N,(H-K+2*pad)/s+1,(W-K+2*pad)/s+1,C_out
         _out_grad = transpose(_out_grad, (0, 2))
-        #print((f'_out_grad shape: {_out_grad.shape}')
+        # print((f'_out_grad shape: {_out_grad.shape}')
 
         W_grad = conv(_X, _out_grad, padding=self.padding)  # C_in,K,K,C_out
-        #print((f'W_grad shape: {W_grad.shape}')
+        # print((f'W_grad shape: {W_grad.shape}')
         W_grad = transpose(W_grad, (0, 1))
         # K,K,C_in,C_out, https://forum.dlsyscourse.org/t/q3-convolution-backward/2824
         W_grad = transpose(W_grad, (1, 2))
 
-        #print((f'W_grad shape: {W_grad.shape}')
+        # print((f'W_grad shape: {W_grad.shape}')
 
         return X_grad, W_grad
         # END YOUR SOLUTION

@@ -452,7 +452,7 @@ void MatmulTiled(const AlignedArray& a, const AlignedArray& b, AlignedArray* out
    *
    */
   /// BEGIN YOUR SOLUTION
-  std::cout<<"matmul tiled...";
+  //std::cout<<"matmul tiled...";
   int32_t num_per_tile=TILE*TILE;
   int32_t row=m/TILE;
   int32_t col=p/TILE;
@@ -476,7 +476,6 @@ void MatmulTiled(const AlignedArray& a, const AlignedArray& b, AlignedArray* out
           AlignedDot(&(a.ptr[index_a]),&(b.ptr[index_b]), &(out->ptr[index_out]));
         }
     }
-    std::cout<<std::endl;
   }
   /// END YOUR SOLUTION
 }

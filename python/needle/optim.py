@@ -61,5 +61,24 @@ class Adam(Optimizer):
 
     def step(self):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        self.t += 1
+        for p in self.params:
+            if p.grad is None:
+                continue
+            g = p.grad.data+p.data*self.weight_decay
+            if p not in self.m:
+                self.m[p] = 0
+            if p not in self.v:
+                self.v[p] = 0
+
+            self.m[p] = self.beta1*self.m[p] + \
+                (1-self.beta1)*g
+            self.v[p] = self.beta2*self.v[p]+(1-self.beta2)*g*g
+
+            u_hat = self.m[p]/(1-self.beta1**self.t)
+            v_hat = self.v[p]/(1-self.beta2**self.t)
+
+            p.data = p.data-self.lr*u_hat/(v_hat**(0.5)+self.eps)
+            #p.data = p.data-self.lr*self.m[p]/(self.v[p]**(0.5)+self.eps)
+            
         ### END YOUR SOLUTION
