@@ -777,7 +777,9 @@ class Conv(TensorOp):
         # print((f'_X shape: {_X.shape}')
         # looks like we assume H=W, so that we can think _out_grad as a kernel
         # H-K+1,W-K+1,N,C_out; padding:N,H-K+1+2*pad,W-K+1+2*pad,C_out; stride:  N,(H-K+2*pad)/s+1,(W-K+2*pad)/s+1,C_out
-        _out_grad = transpose(_out_grad, (0, 2))
+        #_out_grad = transpose(_out_grad, (0, 2))
+        _out_grad = transpose(_out_grad, (0, 1))
+        _out_grad = transpose(_out_grad, (1, 2))
         # print((f'_out_grad shape: {_out_grad.shape}')
 
         W_grad = conv(_X, _out_grad, padding=self.padding)  # C_in,K,K,C_out
