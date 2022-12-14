@@ -417,7 +417,7 @@ class Exp(TensorOp):
 
     def gradient(self, out_grad, node):
         # BEGIN YOUR SOLUTION
-        return out_grad * Tensor(array_api.exp(node.inputs[0].realize_cached_data()))
+        return out_grad * exp(node.inputs[0])
         # END YOUR SOLUTION
 
 
@@ -596,7 +596,7 @@ class Split(TensorTupleOp):
 
     def gradient(self, out_grad, node):
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return stack(out_grad, self.axis)
         # END YOUR SOLUTION
 
 

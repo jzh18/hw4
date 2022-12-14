@@ -5,6 +5,8 @@ import pickle
 from typing import Iterator, Optional, List, Sized, Union, Iterable, Any
 from needle import backend_ndarray as nd
 import gzip
+
+
 def parse_mnist(image_filesname, label_filename):
     """ Read an images and labels file in MNIST format.  See this page:
     http://yann.lecun.com/exdb/mnist/ for a description of the file format.
@@ -154,9 +156,9 @@ class DataLoader:
         device=None,
         dtype="float32"
     ):
-    # for cuda test
-        self.device=device
-        self.dtype=dtype
+        # for cuda test
+        self.device = device
+        self.dtype = dtype
         self.dataset = dataset
         self.shuffle = shuffle
         self.batch_size = batch_size
@@ -182,22 +184,21 @@ class DataLoader:
             raise StopIteration
         indices = self.ordering[self.i]
         self.i += 1
-        
-        all_res=[]
+
+        all_res = []
         for i in indices:
             data = self.dataset[i]
-            for j,v in enumerate(data):
-                if j+1>len(all_res):
+            for j, v in enumerate(data):
+                if j+1 > len(all_res):
                     all_res.append(list())
                 all_res[j].append(v)
-        
-        results=[]
+
+        results = []
         for v in all_res:
-            t=Tensor(v,device=self.device,dtype=self.dtype)
+            t = Tensor(v, device=self.device, dtype=self.dtype)
             results.append(t)
         return results
-                
-        
+
 
 class MNISTDataset(Dataset):
     def __init__(
@@ -262,7 +263,7 @@ class CIFAR10Dataset(Dataset):
         # END YOUR SOLUTION
 
     def _unpickle(self, file):
-        
+
         with open(file, 'rb') as fo:
             dict = pickle.load(fo, encoding='bytes')
         return dict
@@ -318,7 +319,10 @@ class Dictionary(object):
         Returns the word's unique ID.
         """
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        if word not in self.word2idx:
+            self.word2idx[word] = len(self.idx2word)
+            self.idx2word.append(word)
+        return self.word2idx[word]
         # END YOUR SOLUTION
 
     def __len__(self):
@@ -326,7 +330,7 @@ class Dictionary(object):
         Returns the number of unique words in the dictionary.
         """
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return len(self.idx2word)
         # END YOUR SOLUTION
 
 
@@ -355,7 +359,20 @@ class Corpus(object):
         ids: List of ids
         """
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        tokens = []
+        with open(path) as f:
+            lines = f.read().splitlines()
+            lines = lines[:max_lines]
+            for l in lines:
+                for w in l.split():
+                    self.dictionary.add_word(w)
+                self.dictionary.add_word('<eos>')
+            for l in lines:
+                for w in l.split():
+                    tokens.append(self.dictionary.word2idx[w])
+                tokens.append(self.dictionary.word2idx['<eos>'])
+        return tokens
+
         # END YOUR SOLUTION
 
 
@@ -376,7 +393,13 @@ def batchify(data, batch_size, device, dtype):
     Returns the data as a numpy array of shape (nbatch, batch_size).
     """
     # BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    size = len(data)
+    size -= size % batch_size
+    data = data[:size]
+    data = np.array(data)
+    h, w = batch_size, size//batch_size,
+    data = data.reshape(h, w).T
+    return data
     # END YOUR SOLUTION
 
 
@@ -400,5 +423,21 @@ def get_batch(batches, i, bptt, device=None, dtype=None):
     target - Tensor of shape (bptt*bs,) with cached data as NDArray
     """
     # BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    #print(f'batch size: {batches.shape[0]}, i: {i}, bptt: {bptt}')
+    data = batches[i:i+bptt]
+    target = batches[i+1:i+bptt+1]
+   # print(f'target: {target}')
+   # todo: should we transpose it or not
+    #target = target.T
+  #  print(f'target0: {target}')
+    data = nd.array(data, device=device, dtype=dtype)
+    target = nd.array(target, device=device, dtype=dtype).compact().reshape(
+        (bptt*batches.shape[1],))
+ #   print(f'target1: {target}')
+    data = Tensor(data, device=device, dtype=dtype)
+    target = Tensor(target, device=device, dtype=dtype)
+#    print(f'target2: {target}')
+
+    return data, target
+    # return None
     # END YOUR SOLUTION
