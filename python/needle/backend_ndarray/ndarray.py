@@ -57,12 +57,14 @@ class BackendDevice:
         return arr
 
 
-def cuda():
+def cuda(device_id=0):
     """Return cuda device"""
     try:
         from . import ndarray_backend_cuda
 
-        return BackendDevice("cuda", ndarray_backend_cuda)
+        device=BackendDevice("cuda", ndarray_backend_cuda)
+        device.set_device(device_id)
+        return device
     except ImportError:
         return BackendDevice("cuda", None)
 
