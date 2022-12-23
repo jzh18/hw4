@@ -26,6 +26,7 @@ struct CudaArray {
   
   scalar_t* ptr;
   size_t size;
+  int32_t id;
 };
 
 struct CudaDims {
@@ -579,6 +580,11 @@ void ReduceSum(const CudaArray& a, CudaArray* out, size_t reduce_size) {
   /// END YOUR SOLUTION
 }
 
+void SetDevice(int32_t device_id) {
+  cudaSetDevice(device_id);  
+}
+
+
 }  // namespace cuda
 }  // namespace needle
 
@@ -586,14 +592,13 @@ PYBIND11_MODULE(ndarray_backend_cuda, m) {
   namespace py = pybind11;
   using namespace needle;
   using namespace cuda;
-
   m.attr("__device_name__") = "cuda";
   m.attr("__tile_size__") = TILE;
 
   py::class_<CudaArray>(m, "Array")
       .def(py::init<size_t>(), py::return_value_policy::take_ownership)
       .def_readonly("size", &CudaArray::size)
-      .def("ptr", &CudaArray::ptr_as_int);
+      .def("ptr", &CudaArray::ptr_as_int);  
 
   // return numpy array, copying from CPU
   m.def("to_numpy", [](const CudaArray& a, std::vector<int32_t> shape, std::vector<int32_t> strides,
@@ -648,4 +653,5 @@ PYBIND11_MODULE(ndarray_backend_cuda, m) {
 
   m.def("reduce_max", ReduceMax);
   m.def("reduce_sum", ReduceSum);
+  m.def("set_device", SetDevice);
 }
