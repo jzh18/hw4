@@ -1,5 +1,5 @@
 import sys
-sys.path.append('../python')
+sys.path.append('python')
 import needle as ndl
 import needle.nn as nn
 from needle import backend_ndarray as nd
@@ -63,7 +63,7 @@ if __name__ == "__main__":
     
     rank, size, device = ndl.ddp.init()
 
-    dataset = ndl.data.CIFAR10Dataset("../data/cifar-10-batches-py", train=True)
+    dataset = ndl.data.CIFAR10Dataset("data/cifar-10-batches-py", train=True)
 
     batch_size = 512
     train_set, bsz = ndl.ddp.partition_dataset(
@@ -78,7 +78,8 @@ if __name__ == "__main__":
          lr=0.001, weight_decay=0.001)
     end = time.time()
 
-    print("Time:",end-begin)
+    if rank==0:
+        print("Time:",end-begin)
 
 
     correct, loss = evaluate_cifar10(model, train_set, loss_fn=nn.SoftmaxLoss())
