@@ -52,15 +52,15 @@ endif()
 ####################
 ### CUDA BACKEND ###
 ####################
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})
 find_package(CUDA)
-SET(NCCL_LIBRARY /usr/lib/x86_64-linux-gnu/libnccl.so.2.13.4)
-MESSAGE(${CUDA_CUDART_LIBRARY})
+find_package(NCCL)
 if(CUDA_FOUND)
   message(STATUS "Found cuda, building cuda backend")
 
   include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
   list(APPEND LINKER_LIBS ${CUDA_CUDART_LIBRARY})
-  list(APPEND LINKER_LIBS ${NCCL_LIBRARY})
+  list(APPEND LINKER_LIBS ${NCCL_LIBRARIES})
 
   # invoke nvidia smi to detect if we really have a GPU
   execute_process(COMMAND "nvidia-smi" ERROR_QUIET  RESULT_VARIABLE NV_RET)
