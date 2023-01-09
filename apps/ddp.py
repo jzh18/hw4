@@ -6,12 +6,17 @@ from mpi4py import MPI
 
 sys.path.append('./python')
 import needle as ndl
+import torch
+
 
 
 def init():
+    num_of_gpus = torch.cuda.device_count()
     global comm, world_size, rank, device
     comm = MPI.COMM_WORLD
     world_size = comm.Get_size()
+    assert num_of_gpus >= world_size, f'Only {num_of_gpus} GPU(s) detected, but {world_size} GPU(s) required.'
+
     rank = comm.Get_rank()
     device = ndl.cuda(rank)
     print(f'Use cuda: {rank}')
@@ -88,5 +93,8 @@ class DistributedOptimizer(ndl.optim.Optimizer):
             sendbuf = np.ascontiguousarray(p.grad.numpy())
             recvbuf = np.empty_like(sendbuf, dtype=p.dtype)
             comm.Allreduce(sendbuf, recvbuf, op=MPI.SUM)
+            original_grad=np.sum(sendbuf)
             recvbuf = recvbuf / world_size
+            avg_grad=np.sum(recvbuf)
+            print(f'original grad: {original_grad}; avg grad: {avg_grad}')
             p.grad.data = ndl.Tensor(recvbuf, device=device, dtype=p.grad.dtype)
