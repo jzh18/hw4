@@ -61,10 +61,10 @@ def evaluate_cifar10(model, dataloader, loss_fn=nn.SoftmaxLoss()):
     return correct,total_loss
 
 if __name__ == "__main__":
-    
+    np.random.seed(4)
     parser = argparse.ArgumentParser(description='distribute trainging')
     parser.add_argument('--nccl', action='store_true', default=False, help='Use nccl or not.')
-    parser.add_argument('--batch_size', type=int, default=512, help='Batch size.')
+    parser.add_argument('--batch_size', type=int, default=128, help='Batch size.')
     parser.add_argument('--epochs', type=int, default=1, help='Epochs.')
     args = parser.parse_args()
     args.comm = MPI.COMM_WORLD

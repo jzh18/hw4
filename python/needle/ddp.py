@@ -1,15 +1,19 @@
 from mpi4py import MPI
 import needle as ndl
 import random
+import torch
 
 def init(args):
+    num_of_gpus = torch.cuda.device_count()
     comm = args.comm
     size = comm.Get_size()
+    assert num_of_gpus >= size, f'Only {num_of_gpus} GPU(s) detected, but {size} GPU(s) required.'
     rank = comm.Get_rank()
     device = ndl.cuda(rank)
     print(f'Use cuda: {rank}')
 
     if args.nccl:
+        print(f'Use nccl backend')
         if rank==0:
             vec = device.get_id()
         else:
@@ -17,6 +21,8 @@ def init(args):
         vec = comm.bcast(vec, root=0)
 
         device.init_nccl(vec,rank,size)
+    else: 
+        print(f'Use mpi4py backend')
     return rank, size, device
 
 class Partition(object):
