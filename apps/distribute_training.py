@@ -7,6 +7,7 @@ from models import *
 import time
 from mpi4py import MPI
 from random import Random
+import argparse
 
 
 
@@ -41,10 +42,10 @@ def epoch_general_cifar10(dataloader, model, loss_fn=nn.SoftmaxLoss(), opt=None)
 
 
 def train_cifar10(model, dataloader, n_epochs=1, optimizer=ndl.optim.Adam,
-          lr=0.001, weight_decay=0.001, loss_fn=nn.SoftmaxLoss()):
+          lr=0.001, weight_decay=0.001, loss_fn=nn.SoftmaxLoss(), args=None):
 
     np.random.seed(4)
-    opt=optimizer(model.parameters(), lr=lr, weight_decay=weight_decay)
+    opt=optimizer(model.parameters(), lr=lr, weight_decay=weight_decay, args = args)
     
     for i in range(n_epochs):
         correct, total_loss = epoch_general_cifar10(dataloader, model, loss_fn, opt)
@@ -61,21 +62,28 @@ def evaluate_cifar10(model, dataloader, loss_fn=nn.SoftmaxLoss()):
 
 if __name__ == "__main__":
     
-    rank, size, device = ndl.ddp.init()
+    parser = argparse.ArgumentParser(description='distribute trainging')
+    parser.add_argument('--nccl', action='store_true', default=False, help='Use nccl or not.')
+    parser.add_argument('--batch_size', type=int, default=512, help='Batch size.')
+    parser.add_argument('--epochs', type=int, default=1, help='Epochs.')
+    args = parser.parse_args()
+    args.comm = MPI.COMM_WORLD
+
+    rank, size, device = ndl.ddp.init(args)
 
     dataset = ndl.data.CIFAR10Dataset("data/cifar-10-batches-py", train=True)
 
-    batch_size = 512
+    batch_size = args.batch_size
     train_set, bsz = ndl.ddp.partition_dataset(
         dataset, batch_size , size, device=device, dtype='float32')
     
     model = ResNet9(device=device, dtype="float32")
-    ndl.ddp.broadcast_parameters(model)
+    ndl.ddp.broadcast_parameters(model,args)
 
 
     begin = time.time()
     train_cifar10(model, train_set, n_epochs=1, optimizer=ndl.optim.Adam,
-         lr=0.001, weight_decay=0.001)
+         lr=0.001, weight_decay=0.001,args=args)
     end = time.time()
 
     if rank==0:

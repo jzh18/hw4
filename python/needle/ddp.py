@@ -2,20 +2,21 @@ from mpi4py import MPI
 import needle as ndl
 import random
 
-def init():
-    comm = MPI.COMM_WORLD
+def init(args):
+    comm = args.comm
     size = comm.Get_size()
     rank = comm.Get_rank()
     device = ndl.cuda(rank)
     print(f'Use cuda: {rank}')
 
-    if rank==0:
-        vec = device.get_id()
-    else:
-        vec = None
-    vec = comm.bcast(vec, root=0)
+    if args.nccl:
+        if rank==0:
+            vec = device.get_id()
+        else:
+            vec = None
+        vec = comm.bcast(vec, root=0)
 
-    device.init_nccl(vec,rank,size)
+        device.init_nccl(vec,rank,size)
     return rank, size, device
 
 class Partition(object):
@@ -63,6 +64,14 @@ def partition_dataset(dataset, batch_size, world_size, device, dtype):
         dataset=partition, batch_size=bsz, shuffle=True, device=device, dtype=dtype)
     return train_set, bsz
 
-def broadcast_parameters(model, rank=0):
-    for x in model.parameters():
-        x.cached_data = x.realize_cached_data().broadcast(rank)
+def broadcast_parameters(model, args, rank=0):
+    if args.nccl:
+        for x in model.parameters():
+            x.cached_data = x.realize_cached_data().broadcast(rank)
+    else:
+        comm = args.comm
+        for p in model.parameters():
+            p_data = p.numpy()
+            p_data = comm.bcast(p_data, root=0)
+            p.data = ndl.Tensor(p_data, device=p.device, dtype=p.dtype)
+        
